@@ -1,0 +1,51 @@
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: legocitytimes-postgres
+    environment:
+      POSTGRES_DB: legocitytimes
+      POSTGRES_USER: legocity
+      POSTGRES_PASSWORD: legocity
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legocity -d legocitytimes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  content-service:
+    build:
+      context: ./content-service
+      dockerfile: Dockerfile
+    image: legocitytimes/content-service:latest
+    container_name: legocitytimes-content-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/app/uploads
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/legocitytimes
+      SPRING_DATASOURCE_USERNAME: legocity
+      SPRING_DATASOURCE_PASSWORD: legocity
+      APP_IMAGE_UPLOAD_DIR: /app/uploads/images
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  pgdata:
+    name: legocitytimes-pgdata
+  uploads:
+    name: legocitytimes-uploads
