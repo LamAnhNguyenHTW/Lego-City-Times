@@ -18,12 +18,15 @@ WORKDIR /app
 
 # Nicht als root laufen
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
+RUN mkdir -p /app/uploads/images && chown -R spring:spring /app/uploads
 
 COPY --from=build /workspace/target/*.jar app.jar
+RUN chown spring:spring app.jar
 
 # Upload-Verzeichnis als Volume-Einstiegspunkt (Bilder bleiben erhalten)
 VOLUME /app/uploads
+
+USER spring:spring
 
 EXPOSE 8080
 
