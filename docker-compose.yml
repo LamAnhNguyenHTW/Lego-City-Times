@@ -157,12 +157,7 @@ services:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/legocitytimes.json
     restart: unless-stopped
 
-volumes:
-  pgdata:   { name: legocitytimes-pgdata }
-  uploads:  { name: legocitytimes-uploads }
-  promdata: { name: legocitytimes-promdata }
-  alertdata: { name: legocitytimes-alertdata }
-  grafanadata: { name: legocitytimes-grafanadata }
+
   search-service:
     build:
       context: ./search-service
@@ -184,10 +179,12 @@ volumes:
       retries: 3
       start_period: 20s
 
+
+
 volumes:
-  esdata:
-    name: legocitytimes-esdata
-  pgdata:
-    name: legocitytimes-pgdata
-  uploads:
-    name: legocitytimes-uploads
+  pgdata:   { name: legocitytimes-pgdata }
+  uploads:  { name: legocitytimes-uploads }
+  promdata: { name: legocitytimes-promdata }
+  alertdata: { name: legocitytimes-alertdata }
+  grafanadata: { name: legocitytimes-grafanadata }
+  esdata: { name: legocitytimes-esdata }
