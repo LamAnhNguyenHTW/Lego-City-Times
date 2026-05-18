@@ -1,4 +1,4 @@
-package LegoCity.ContentService.content_service;
+package LegoCity.content_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
