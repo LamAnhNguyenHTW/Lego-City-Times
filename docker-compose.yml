@@ -1,6 +1,25 @@
 services:
 
   # ── Datenbank ──────────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.8
+    container_name: legocitytimes-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\""]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   postgres:
     image: postgres:17-alpine
     container_name: legocitytimes-postgres
@@ -24,6 +43,7 @@ services:
       dockerfile: Dockerfile
     image: legocitytimes/content-service:latest
     container_name: legocitytimes-content-service
+    user: "0:0"
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,3 +163,31 @@ volumes:
   promdata: { name: legocitytimes-promdata }
   alertdata: { name: legocitytimes-alertdata }
   grafanadata: { name: legocitytimes-grafanadata }
+  search-service:
+    build:
+      context: ./search-service
+      dockerfile: Dockerfile
+    image: legocitytimes/search-service:latest
+    container_name: legocitytimes-search-service
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  esdata:
+    name: legocitytimes-esdata
+  pgdata:
+    name: legocitytimes-pgdata
+  uploads:
+    name: legocitytimes-uploads
