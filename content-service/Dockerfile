@@ -16,9 +16,12 @@ RUN ./mvnw package -DskipTests -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Nicht als root laufen
-RUN addgroup -S spring && adduser -S spring -G spring
-RUN mkdir -p /app/uploads/images && chown -R spring:spring /app/uploads
+# Nicht als root laufen — Upload-Verzeichnis vor dem User-Switch anlegen
+RUN addgroup -S spring && adduser -S spring -G spring && \
+    mkdir -p /app/uploads/images && \
+    chown -R spring:spring /app
+
+USER spring:spring
 
 COPY --from=build /workspace/target/*.jar app.jar
 RUN chown spring:spring app.jar
@@ -31,3 +34,5 @@ USER spring:spring
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+
+ 
