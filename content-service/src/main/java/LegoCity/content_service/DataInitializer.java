@@ -4,6 +4,7 @@ import LegoCity.content_service.model.*;
 import LegoCity.content_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,35 @@ public class DataInitializer implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final ArticleRepository articleRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) {
+        seedUsers();
+        seedContent();
+    }
+
+    private void seedUsers() {
+        if (userRepository.count() > 0) return;
+
+        userRepository.save(User.builder()
+                .username("admin")
+                .email("admin@legocitytimes.lc")
+                .password(passwordEncoder.encode("admin123"))
+                .role(Role.ADMIN)
+                .build());
+
+        userRepository.save(User.builder()
+                .username("leser")
+                .email("leser@legocitytimes.lc")
+                .password(passwordEncoder.encode("leser123"))
+                .role(Role.USER)
+                .build());
+    }
+
+    private void seedContent() {
         if (categoryRepository.count() > 0) return;
 
         Category nachrichten = categoryRepository.save(Category.builder()
@@ -42,8 +68,7 @@ public class DataInitializer implements CommandLineRunner {
                 .subtitle("Bürgermeister Brick enthüllt das Megaprojekt")
                 .content("Lego City wächst! Bürgermeister Brick hat heute offiziell den Bau einer neuen " +
                         "Hängebrücke angekündigt, die den östlichen und westlichen Stadtteil verbinden soll. " +
-                        "Die Brücke wird 500 Noppen lang sein und soll bis zum Herbst fertiggestellt werden. " +
-                        "Experten schätzen, dass dadurch täglich 10.000 Fahrzeuge weniger durch das Stadtzentrum fahren werden.")
+                        "Die Brücke wird 500 Noppen lang sein und soll bis zum Herbst fertiggestellt werden.")
                 .author("Emma Steinberg")
                 .category(nachrichten)
                 .status(ArticleStatus.PUBLISHED)
@@ -56,9 +81,7 @@ public class DataInitializer implements CommandLineRunner {
                 .slug("lego-city-eagles-gewinnen-meisterschaft")
                 .subtitle("Erster Titel nach zehn Jahren")
                 .content("Die Lego City Eagles haben gestern Abend im Finale gegen die Duplo Dynamos " +
-                        "mit 3:1 gewonnen und sich damit den lang ersehnten Meistertitel gesichert. " +
-                        "Kapitän Brix Hooper erzielte zwei Tore und wurde zum Spieler des Turniers gekürt. " +
-                        "Die ganze Stadt feiert bis in die frühen Morgenstunden.")
+                        "mit 3:1 gewonnen und sich damit den lang ersehnten Meistertitel gesichert.")
                 .author("Lars Klötzner")
                 .category(sport)
                 .status(ArticleStatus.PUBLISHED)
@@ -70,10 +93,7 @@ public class DataInitializer implements CommandLineRunner {
                 .title("Lego City testet autonome Polizeiautos")
                 .slug("lego-city-testet-autonome-polizeiautos")
                 .subtitle("KI-gesteuerte Fahrzeuge auf Probe")
-                .content("Ab nächstem Monat werden in Lego City erstmals autonome Polizeifahrzeuge getestet. " +
-                        "Die mit modernster Brick-Intelligence ausgestatteten Autos sollen den Stadtverkehr " +
-                        "überwachen und bei Unfällen automatisch Alarm schlagen. Datenschützer haben bereits " +
-                        "Bedenken angemeldet.")
+                .content("Ab nächstem Monat werden in Lego City erstmals autonome Polizeifahrzeuge getestet.")
                 .author("Sophie Noppe")
                 .category(technologie)
                 .status(ArticleStatus.DRAFT)

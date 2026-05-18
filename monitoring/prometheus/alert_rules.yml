@@ -1,0 +1,210 @@
+groups:
+
+  # ── 1. Container CPU ────────────────────────────────────────────────────────
+  - name: container_cpu
+    rules:
+      - alert: ContainerCpuWarning
+        expr: >
+          rate(container_cpu_usage_seconds_total{name=~"legocitytimes.*"}[2m]) * 100 > 70
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU > 70% — {{ $labels.name }}"
+          description: "Container {{ $labels.name }} CPU-Auslastung bei {{ $value | printf \"%.1f\" }}% (Schwelle: 70%)."
+
+      - alert: ContainerCpuCritical
+        expr: >
+          rate(container_cpu_usage_seconds_total{name=~"legocitytimes.*"}[1m]) * 100 > 90
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU KRITISCH > 90% — {{ $labels.name }}"
+          description: "Container {{ $labels.name }} CPU-Auslastung bei {{ $value | printf \"%.1f\" }}%. Skalierung prüfen!"
+
+  # ── 2. Container Memory ─────────────────────────────────────────────────────
+  - name: container_memory
+    rules:
+      - alert: ContainerMemoryWarning
+        expr: >
+          (container_memory_working_set_bytes{name=~"legocitytimes.*"}
+          / container_spec_memory_limit_bytes{name=~"legocitytimes.*"}) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory > 80% — {{ $labels.name }}"
+          description: "Container {{ $labels.name }} Speicherauslastung bei {{ $value | printf \"%.1f\" }}%."
+
+      - alert: ContainerMemoryCritical
+        expr: >
+          (container_memory_working_set_bytes{name=~"legocitytimes.*"}
+          / container_spec_memory_limit_bytes{name=~"legocitytimes.*"}) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Memory KRITISCH > 95% — {{ $labels.name }}"
+          description: "Container {{ $labels.name }} Speicher bei {{ $value | printf \"%.1f\" }}%. Sofort prüfen!"
+
+  # ── 3. Container Instanzen / Health ─────────────────────────────────────────
+  - name: container_health
+    rules:
+      - alert: ServiceDown
+        expr: up{job="content-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service nicht erreichbar: {{ $labels.job }}"
+          description: "Prometheus kann {{ $labels.job }} nicht scrapen. Container möglicherweise ausgefallen."
+
+      - alert: ServiceDegradedWarning
+        expr: up{job=~"content-service|nginx|postgres"} == 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service {{ $labels.job }} unhealthy"
+          description: "Service {{ $labels.job }} antwortet nicht auf Scrape-Anfragen."
+
+  # ── 5 & 6. HTTP Metriken ────────────────────────────────────────────────────
+  - name: http_metrics
+    rules:
+      # Request-Rate-Einbruch (>30% unter 5-Minuten-Baseline)
+      - alert: HttpRequestRateDropWarning
+        expr: >
+          (
+            rate(nginx_http_requests_total[5m])
+            < rate(nginx_http_requests_total[30m]) * 0.70
+          ) and rate(nginx_http_requests_total[30m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP Request-Rate um >30% eingebrochen"
+          description: "Aktuelle Rate: {{ $value | printf \"%.2f\" }} req/s — mögliches Traffic-Problem."
+
+      - alert: HttpRequestRateDropCritical
+        expr: >
+          (
+            rate(nginx_http_requests_total[5m])
+            < rate(nginx_http_requests_total[30m]) * 0.40
+          ) and rate(nginx_http_requests_total[30m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP Request-Rate KRITISCH (>60% Einbruch)"
+          description: "Ausfall oder schwerwiegendes Traffic-Problem!"
+
+      # 5xx-Rate
+      - alert: Http5xxRateWarning
+        expr: >
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5..",job="content-service"}[5m]))
+            / sum(rate(http_server_requests_seconds_count{job="content-service"}[5m]))
+          ) * 100 > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx-Rate > 1%"
+          description: "Fehlerrate: {{ $value | printf \"%.2f\" }}% aller Anfragen."
+
+      - alert: Http5xxRateCritical
+        expr: >
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5..",job="content-service"}[5m]))
+            / sum(rate(http_server_requests_seconds_count{job="content-service"}[5m]))
+          ) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx-Rate KRITISCH > 5%"
+          description: "Fehlerrate: {{ $value | printf \"%.2f\" }}%. Sofort-Alert!"
+
+  # ── 7 & 10. Antwortzeiten ────────────────────────────────────────────────────
+  - name: latency
+    rules:
+      - alert: ResponseTimeP95Warning
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="content-service"}[5m])) by (le)
+          ) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 Antwortzeit > 500ms"
+          description: "p95-Latenz: {{ $value | printf \"%.3f\" }}s — Performanceanalyse empfohlen."
+
+      - alert: ResponseTimeP95Critical
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="content-service"}[5m])) by (le)
+          ) > 1.0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "p95 Antwortzeit KRITISCH > 1s"
+          description: "p95-Latenz: {{ $value | printf \"%.3f\" }}s. Query- und Cache-Prüfung nötig!"
+
+  # ── 8. Datenbankverbindungen ─────────────────────────────────────────────────
+  - name: database
+    rules:
+      - alert: DbConnectionsWarning
+        expr: >
+          sum(pg_stat_activity_count{datname="legocitytimes"})
+          / scalar(pg_settings_max_connections) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB-Verbindungen > 80% max_conn"
+          description: "{{ $value | printf \"%.1f\" }}% der max. Verbindungen belegt. Connection-Pooling prüfen."
+
+      - alert: DbConnectionsCritical
+        expr: >
+          sum(pg_stat_activity_count{datname="legocitytimes"})
+          / scalar(pg_settings_max_connections) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DB-Verbindungen KRITISCH > 95% max_conn"
+          description: "{{ $value | printf \"%.1f\" }}% — neue Verbindungen werden abgelehnt!"
+
+  # ── 9. Storage-Erreichbarkeit ────────────────────────────────────────────────
+  - name: storage
+    rules:
+      - alert: StorageHealthWarning
+        expr: >
+          up{job="content-service"} == 1
+          unless
+          probe_success{job="content-service"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Storage-Health-Check schlägt fehl"
+          description: "Der Health-Endpoint meldet Probleme mit dem Storage."
+
+      - alert: ActuatorHealthDegraded
+        expr: >
+          (
+            sum by (job) (
+              rate(http_server_requests_seconds_count{
+                uri="/actuator/health", status="200", job="content-service"
+              }[5m])
+            )
+          ) == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health-Endpoint nicht erreichbar"
+          description: "GET /actuator/health liefert keine 200-Antworten mehr."

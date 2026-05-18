@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: "legocitytimes"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # Spring Boot Actuator → Prometheus
+  - job_name: "content-service"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["content-service:8080"]
+
+  # cAdvisor → Container-Metriken (CPU, Memory, Instanzen)
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Nginx Exporter → HTTP-Request-Rate, Verbindungen
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+
+  # PostgreSQL Exporter → DB-Verbindungen
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Prometheus selbst
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
