@@ -1,15 +1,21 @@
 package LegoCity.content_service;
 
-import LegoCity.content_service.model.*;
-import LegoCity.content_service.repository.*;
+import LegoCity.content_service.model.Category;
+import LegoCity.content_service.model.Role;
+import LegoCity.content_service.model.Tag;
+import LegoCity.content_service.model.User;
+import LegoCity.content_service.repository.ArticleRepository;
+import LegoCity.content_service.repository.CategoryRepository;
+import LegoCity.content_service.repository.TagRepository;
+import LegoCity.content_service.repository.UserRepository;
+import LegoCity.content_service.service.SearchSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -20,16 +26,29 @@ public class DataInitializer implements CommandLineRunner {
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SearchSyncService searchSyncService;
+
+    private static final List<String> MOCK_ARTICLE_SLUGS = List.of(
+            "gefangener-aus-transporter-geflohen",
+            "brand-im-lagerhaus-geloescht",
+            "neues-einkaufszentrum-geplant",
+            "skatepark-wettbewerb-am-wochenende",
+            "neuer-flughafen-eroeffnet",
+            "neue-bruecke-verbindet-lego-city-ost-mit-west",
+            "lego-city-eagles-gewinnen-meisterschaft",
+            "lego-city-testet-autonome-polizeiautos");
 
     @Override
     @Transactional
     public void run(String... args) {
         seedUsers();
-        seedContent();
+        seedTaxonomy();
+        removeMockArticles();
     }
 
     private void seedUsers() {
-        if (userRepository.count() > 0) return;
+        if (userRepository.count() > 0)
+            return;
 
         userRepository.save(User.builder()
                 .username("admin")
@@ -46,58 +65,45 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
     }
 
-    private void seedContent() {
-        if (categoryRepository.count() > 0) return;
+    private void seedTaxonomy() {
+        category("news", "News", "Aktuelle Meldungen aus LEGO City");
+        category("polizei", "Polizei", "Einsatze, Fahndungen und Verkehrsmeldungen");
+        category("politik", "Politik", "Politische Ereignisse und Entscheidungen");
+        category("wirtschaft", "Wirtschaft", "Geschaft, Bauprojekte und Jobs");
+        category("sport", "Sport", "Turniere, Rennen und Vereinsleben");
+        category("kultur", "Kultur", "Kunst, Unterhaltung und Veranstaltungen");
 
-        Category nachrichten = categoryRepository.save(Category.builder()
-                .name("Nachrichten").slug("nachrichten").description("Aktuelle Neuigkeiten aus Lego City").build());
-        Category sport = categoryRepository.save(Category.builder()
-                .name("Sport").slug("sport").description("Sportereignisse in Lego City").build());
-        Category technologie = categoryRepository.save(Category.builder()
-                .name("Technologie").slug("technologie").description("Tech-Neuigkeiten und Innovationen").build());
+        tag("breaking", "Breaking");
+        tag("lokal", "Lokal");
+        tag("verkehr", "Verkehr");
+        tag("rettung", "Rettung");
+        tag("city", "City");
+    }
 
-        Tag breaking = tagRepository.save(Tag.builder().name("Breaking").slug("breaking").build());
-        Tag lokal = tagRepository.save(Tag.builder().name("Lokal").slug("lokal").build());
-        Tag international = tagRepository.save(Tag.builder().name("International").slug("international").build());
-        Tag verkehr = tagRepository.save(Tag.builder().name("Verkehr").slug("verkehr").build());
-        Tag legoland = tagRepository.save(Tag.builder().name("Legoland").slug("legoland").build());
+    private Category category(String slug, String name, String description) {
+        return categoryRepository.findBySlug(slug)
+                .orElseGet(() -> categoryRepository.save(Category.builder()
+                        .slug(slug)
+                        .name(name)
+                        .description(description)
+                        .build()));
+    }
 
-        articleRepository.save(Article.builder()
-                .title("Neue Brücke verbindet Lego City Ost mit West")
-                .slug("neue-bruecke-verbindet-lego-city-ost-mit-west")
-                .subtitle("Bürgermeister Brick enthüllt das Megaprojekt")
-                .content("Lego City wächst! Bürgermeister Brick hat heute offiziell den Bau einer neuen " +
-                        "Hängebrücke angekündigt, die den östlichen und westlichen Stadtteil verbinden soll. " +
-                        "Die Brücke wird 500 Noppen lang sein und soll bis zum Herbst fertiggestellt werden.")
-                .author("Emma Steinberg")
-                .category(nachrichten)
-                .status(ArticleStatus.PUBLISHED)
-                .publishedAt(LocalDateTime.now().minusDays(1))
-                .tags(Set.of(breaking, lokal, verkehr))
-                .build());
+    private Tag tag(String slug, String name) {
+        return tagRepository.findBySlug(slug)
+                .orElseGet(() -> tagRepository.save(Tag.builder()
+                        .slug(slug)
+                        .name(name)
+                        .build()));
+    }
 
-        articleRepository.save(Article.builder()
-                .title("Lego City Eagles gewinnen Meisterschaft")
-                .slug("lego-city-eagles-gewinnen-meisterschaft")
-                .subtitle("Erster Titel nach zehn Jahren")
-                .content("Die Lego City Eagles haben gestern Abend im Finale gegen die Duplo Dynamos " +
-                        "mit 3:1 gewonnen und sich damit den lang ersehnten Meistertitel gesichert.")
-                .author("Lars Klötzner")
-                .category(sport)
-                .status(ArticleStatus.PUBLISHED)
-                .publishedAt(LocalDateTime.now().minusHours(6))
-                .tags(Set.of(lokal, legoland))
-                .build());
-
-        articleRepository.save(Article.builder()
-                .title("Lego City testet autonome Polizeiautos")
-                .slug("lego-city-testet-autonome-polizeiautos")
-                .subtitle("KI-gesteuerte Fahrzeuge auf Probe")
-                .content("Ab nächstem Monat werden in Lego City erstmals autonome Polizeifahrzeuge getestet.")
-                .author("Sophie Noppe")
-                .category(technologie)
-                .status(ArticleStatus.DRAFT)
-                .tags(Set.of(breaking, international))
-                .build());
+    private void removeMockArticles() {
+        for (String slug : MOCK_ARTICLE_SLUGS) {
+            articleRepository.findBySlug(slug).ifPresent(article -> {
+                Long id = article.getId();
+                articleRepository.delete(article);
+                searchSyncService.deleteArticle(id);
+            });
+        }
     }
 }

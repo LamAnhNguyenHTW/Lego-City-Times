@@ -24,6 +24,13 @@ public class ImageController {
 
     private final ImageService imageService;
 
+    @GetMapping
+    @Operation(summary = "Alle hochgeladenen Bilder auflisten")
+    public ResponseEntity<List<ImageResponse>> getImages(
+            @RequestParam(defaultValue = "false") boolean unattachedOnly) {
+        return ResponseEntity.ok(imageService.getImages(unattachedOnly));
+    }
+
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Bild hochladen (optional einem Artikel zuordnen)")
     public ResponseEntity<ImageResponse> upload(

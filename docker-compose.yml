@@ -54,6 +54,7 @@ services:
       SPRING_DATASOURCE_USERNAME: legocity
       SPRING_DATASOURCE_PASSWORD: legocity
       APP_IMAGE_UPLOAD_DIR: /app/uploads/images
+      APP_SEARCH_SERVICE_URL: http://search-service:8080
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
@@ -178,6 +179,17 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: legocitytimes/frontend:latest
+    container_name: legocitytimes-frontend
+    depends_on:
+      - content-service
+      - search-service
+    restart: unless-stopped
 
 
 

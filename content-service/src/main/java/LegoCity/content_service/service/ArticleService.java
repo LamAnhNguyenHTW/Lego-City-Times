@@ -27,6 +27,7 @@ public class ArticleService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final ImageService imageService;
+    private final SearchSyncService searchSyncService;
 
     @Transactional(readOnly = true)
     public PageResponse<ArticleSummaryResponse> getArticles(
@@ -80,7 +81,9 @@ public class ArticleService {
         applyCategory(article, request.getCategoryId());
         applyTags(article, request.getTagIds());
 
-        return toResponse(articleRepository.save(article));
+        Article saved = articleRepository.save(article);
+        searchSyncService.syncArticle(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -99,7 +102,9 @@ public class ArticleService {
         applyCategory(article, request.getCategoryId());
         applyTags(article, request.getTagIds());
 
-        return toResponse(articleRepository.save(article));
+        Article saved = articleRepository.save(article);
+        searchSyncService.syncArticle(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -107,6 +112,7 @@ public class ArticleService {
         Article article = findById(id);
         article.getImages().forEach(img -> imageService.deleteFile(img.getFileName()));
         articleRepository.delete(article);
+        searchSyncService.deleteArticle(id);
     }
 
     @Transactional
@@ -117,14 +123,18 @@ public class ArticleService {
         }
         article.setStatus(ArticleStatus.PUBLISHED);
         article.setPublishedAt(LocalDateTime.now());
-        return toResponse(articleRepository.save(article));
+        Article saved = articleRepository.save(article);
+        searchSyncService.syncArticle(saved);
+        return toResponse(saved);
     }
 
     @Transactional
     public ArticleResponse archiveArticle(Long id) {
         Article article = findById(id);
         article.setStatus(ArticleStatus.ARCHIVED);
-        return toResponse(articleRepository.save(article));
+        Article saved = articleRepository.save(article);
+        searchSyncService.syncArticle(saved);
+        return toResponse(saved);
     }
 
     private Article findById(Long id) {

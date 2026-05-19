@@ -20,8 +20,11 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -42,21 +45,24 @@ public class ImageService {
 
     @PostConstruct
     void init() throws IOException {
-        Files.createDirectories(Path.of(uploadDir));
+        Files.createDirectories(storageRoot());
     }
 
     @Transactional
     public ImageResponse uploadImage(MultipartFile file, Long articleId, String altText, String caption) throws IOException {
         validateFile(file);
 
-        String extension = extractExtension(file.getOriginalFilename());
+        String extension = extractExtension(file.getOriginalFilename(), file.getContentType());
         String fileName = UUID.randomUUID() + "." + extension;
-        Path dest = Path.of(uploadDir).resolve(fileName);
+        Path dest = storageRoot().resolve(fileName).normalize();
+        if (!dest.startsWith(storageRoot())) {
+            throw new BadRequestException("Ungultiger Dateiname");
+        }
+
         Files.createDirectories(dest.getParent());
-        Files.copy(file.getInputStream(), dest);
+        Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
 
         String url = "/uploads/images/" + fileName;
-
         ArticleImage.ArticleImageBuilder builder = ArticleImage.builder()
                 .fileName(fileName)
                 .originalFileName(file.getOriginalFilename())
@@ -76,6 +82,18 @@ public class ImageService {
     }
 
     @Transactional(readOnly = true)
+    public List<ImageResponse> getImages(boolean unattachedOnly) {
+        List<ArticleImage> images = unattachedOnly
+                ? imageRepository.findByArticleIsNull()
+                : imageRepository.findAll();
+
+        return images.stream()
+                .sorted(Comparator.comparing(ArticleImage::getUploadedAt).reversed())
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ImageResponse getImage(Long id) {
         return toResponse(findById(id));
     }
@@ -87,7 +105,11 @@ public class ImageService {
 
     public Resource serveImage(Long id) throws MalformedURLException {
         ArticleImage image = findById(id);
-        Path filePath = Path.of(uploadDir).resolve(image.getFileName());
+        Path filePath = storageRoot().resolve(image.getFileName()).normalize();
+        if (!filePath.startsWith(storageRoot())) {
+            throw new ResourceNotFoundException("Bilddatei nicht gefunden: " + id);
+        }
+
         Resource resource = new UrlResource(filePath.toUri());
         if (!resource.exists()) {
             throw new ResourceNotFoundException("Bilddatei nicht gefunden: " + id);
@@ -113,23 +135,41 @@ public class ImageService {
 
     void deleteFile(String fileName) {
         try {
-            Files.deleteIfExists(Path.of(uploadDir).resolve(fileName));
+            Files.deleteIfExists(storageRoot().resolve(fileName).normalize());
         } catch (IOException ignored) {
         }
     }
 
     private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) throw new BadRequestException("Datei ist leer");
-        if (file.getSize() > maxFileSize)
-            throw new BadRequestException("Datei überschreitet die maximale Größe von " + (maxFileSize / 1024 / 1024) + " MB");
-        List<String> allowed = Arrays.asList(allowedTypes.split(","));
-        if (!allowed.contains(file.getContentType()))
+        if (file.isEmpty()) {
+            throw new BadRequestException("Datei ist leer");
+        }
+        if (file.getSize() > maxFileSize) {
+            throw new BadRequestException("Datei uberschreitet die maximale Grosse von " + (maxFileSize / 1024 / 1024) + " MB");
+        }
+
+        List<String> allowed = Arrays.stream(allowedTypes.split(","))
+                .map(String::trim)
+                .toList();
+        if (!allowed.contains(file.getContentType())) {
             throw new BadRequestException("Dateityp nicht erlaubt: " + file.getContentType());
+        }
     }
 
-    private String extractExtension(String filename) {
-        if (filename == null || !filename.contains(".")) return "jpg";
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    private String extractExtension(String filename, String contentType) {
+        if (filename != null && filename.contains(".")) {
+            String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+            if (extension.matches("jpe?g|png|webp|gif")) {
+                return extension.equals("jpeg") ? "jpg" : extension;
+            }
+        }
+
+        return switch (contentType == null ? "" : contentType) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            default -> "jpg";
+        };
     }
 
     private ArticleImage findById(Long id) {
@@ -150,5 +190,9 @@ public class ImageService {
                 .articleId(img.getArticle() != null ? img.getArticle().getId() : null)
                 .uploadedAt(img.getUploadedAt())
                 .build();
+    }
+
+    private Path storageRoot() {
+        return Path.of(uploadDir).toAbsolutePath().normalize();
     }
 }

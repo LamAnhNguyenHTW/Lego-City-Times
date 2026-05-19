@@ -1,0 +1,878 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* LEGO Signature Colors for Tailwind CSS v4 */
+  --color-lego-red: #E60012;
+  --color-lego-yellow: #F2CD37;
+  --color-lego-blue: #0055A5;
+  --color-lego-green: #00AA47;
+  --color-lego-orange: #F57C00;
+  --color-lego-black: #1D1D1D;
+  --color-lego-white: #FFFFFF;
+  --color-lego-gray-base: #B4B4B4;
+  --color-lego-gray-light: #E5E5E5;
+  --color-lego-gray-dark: #5A5A5A;
+
+  /* Legacy variables for raw CSS use */
+  --lego-red: var(--color-lego-red);
+  --lego-yellow: var(--color-lego-yellow);
+  --lego-blue: var(--color-lego-blue);
+  --lego-green: var(--color-lego-green);
+  --lego-orange: var(--color-lego-orange);
+  --lego-black: var(--color-lego-black);
+  --lego-white: var(--color-lego-white);
+  --lego-gray-base: var(--color-lego-gray-base);
+  --lego-gray-light: var(--color-lego-gray-light);
+  --lego-gray-dark: var(--color-lego-gray-dark);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f7c325; /* Matches the vibrant yellow in the lego-bg image */
+  background-image: url('/lego-bg.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  background-size: cover;
+  color: var(--lego-black);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+/* LEGO Stud Pattern Utility */
+.lego-studs {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.18) 22%, transparent 24%),
+                    radial-gradient(circle, rgba(0,0,0,0.12) 24%, transparent 26%);
+  background-size: 20px 20px;
+  background-position: 0 0, 1px 1px;
+}
+
+.lego-studs-blue {
+  background-color: var(--lego-blue);
+}
+
+.lego-studs-red {
+  background-color: var(--lego-red);
+}
+
+.lego-studs-yellow {
+  background-color: var(--lego-yellow);
+}
+
+.lego-studs-green {
+  background-color: var(--lego-green);
+}
+
+.lego-studs-orange {
+  background-color: var(--lego-orange);
+}
+
+.lego-studs-black {
+  background-color: var(--lego-black);
+}
+
+/* LEGO 3D Brick Look */
+.lego-brick {
+  border: 3px solid var(--lego-black);
+  border-radius: 4px;
+  box-shadow: 
+    inset 2px 2px 0px rgba(255,255,255,0.4),
+    inset -2px -2px 0px rgba(0,0,0,0.25),
+    4px 4px 0px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+/* LEGO Buttons with Press Effect */
+.lego-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  padding: 10px 20px;
+  color: var(--lego-white);
+  border: 3px solid var(--lego-black);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.1s ease;
+  user-select: none;
+  box-shadow: 
+    inset 2px 2px 0px rgba(255,255,255,0.4),
+    inset -2px -2px 0px rgba(0,0,0,0.3),
+    0px 4px 0px var(--lego-black);
+  text-decoration: none;
+}
+
+.lego-btn:hover {
+  filter: brightness(1.05);
+}
+
+.lego-btn:active {
+  transform: translateY(4px);
+  box-shadow: 
+    inset 1px 1px 0px rgba(255,255,255,0.4),
+    inset -1px -1px 0px rgba(0,0,0,0.3),
+    0px 0px 0px var(--lego-black);
+}
+
+.lego-btn-red { background-color: var(--lego-red); }
+.lego-btn-blue { background-color: var(--lego-blue); }
+.lego-btn-green { background-color: var(--lego-green); }
+.lego-btn-yellow { 
+  background-color: var(--lego-yellow); 
+  color: var(--lego-black);
+}
+.lego-btn-orange { background-color: var(--lego-orange); }
+.lego-btn-black { background-color: var(--lego-black); }
+
+/* LEGO Brick Header with top studs */
+.lego-brick-header {
+  border: 3px solid var(--lego-black);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  color: var(--lego-white);
+  position: relative;
+  box-shadow: inset 2px 2px 0px rgba(255,255,255,0.4);
+}
+
+.lego-brick-header::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 15px;
+  right: 15px;
+  height: 8px;
+  background-image: radial-gradient(circle, var(--lego-black) 40%, transparent 45%);
+  background-size: 16px 16px;
+  background-position: left center;
+}
+
+/* Category specific colors */
+.color-polizei { background-color: var(--lego-blue); }
+.color-feuerwehr { background-color: var(--lego-red); }
+.color-politik { background-color: var(--lego-red); }
+.color-wirtschaft { background-color: var(--lego-green); }
+.color-sport { background-color: var(--lego-orange); }
+.color-technologie { background-color: var(--lego-black); }
+.color-news { background-color: var(--lego-yellow); color: var(--lego-black); }
+.color-nachrichten { background-color: var(--lego-yellow); color: var(--lego-black); }
+.color-lifestyle { background-color: #8b5cf6; }
+.color-kultur { background-color: #8b5cf6; }
+
+/* Stacked Bricks decorative column */
+.lego-column {
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+.lego-column-left { left: 16px; }
+.lego-column-right { right: 16px; }
+
+.lego-single-brick {
+  width: 100%;
+  height: 24px;
+  border: 2px solid var(--lego-black);
+  border-radius: 3px;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3);
+}
+
+/* Modal Styling */
+.lego-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.lego-modal {
+  background-color: var(--lego-white);
+  border: 4px solid var(--lego-black);
+  border-radius: 8px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid Layout for News Columns */
+.lego-container {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+}
+
+.site-shell {
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+
+.news-hero {
+  min-height: 150px;
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(0,74,148,0.2), rgba(0,74,148,0.86)),
+    linear-gradient(90deg, rgba(0,85,165,0.95), rgba(0,127,199,0.78)),
+    radial-gradient(circle at 86% 22%, white 0 16px, transparent 17px),
+    radial-gradient(circle at 74% 38%, white 0 18px, transparent 19px),
+    #0072bc;
+  border-bottom: 8px solid var(--lego-blue);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 20px;
+  align-items: start;
+  padding-top: 20px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  filter: drop-shadow(3px 4px 0 rgba(0,0,0,0.55));
+}
+
+.brand-lego {
+  background: var(--lego-red);
+  border: 4px solid var(--lego-black);
+  border-radius: 4px;
+  color: white;
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 900;
+  padding: 12px 10px;
+  line-height: 1;
+}
+
+.brand-city,
+.brand-news {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6vw, 76px);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: 0;
+  -webkit-text-stroke: 2px var(--lego-black);
+}
+
+.brand-city {
+  color: #f7f7f7;
+}
+
+.brand-news {
+  color: var(--lego-yellow);
+}
+
+.top-search,
+.user-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.top-search input {
+  border: 0;
+  background: rgba(255,255,255,0.94);
+  color: var(--lego-black);
+  font-family: var(--font-display);
+  font-weight: 800;
+  padding: 13px 16px;
+  border-radius: 4px;
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,0.1);
+  min-width: 160px;
+}
+
+.top-search button,
+.nav-action {
+  border: 0;
+  background: rgba(0, 61, 132, 0.9);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 800;
+  padding: 13px 16px;
+  border-radius: 4px;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.28);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.top-search button:hover,
+.nav-action:hover {
+  background: #004785;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.35), 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.main-nav {
+  background: var(--lego-blue);
+  border-bottom: 4px solid var(--lego-black);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.22);
+}
+
+.nav-row {
+  display: flex;
+  align-items: stretch;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+
+.nav-row button {
+  min-width: 112px;
+  background: var(--lego-blue);
+  color: white;
+  border: 0;
+  border-right: 2px solid #003d7a;
+  border-left: 1px solid rgba(255,255,255,0.16);
+  padding: 18px 22px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.nav-row button.active,
+.nav-row button:hover {
+  background: #004785;
+}
+
+.nav-row .home-tab {
+  min-width: 78px;
+  color: transparent;
+  position: relative;
+}
+
+.nav-row .home-tab::before {
+  content: "";
+  position: absolute;
+  inset: 17px 24px;
+  background: white;
+  clip-path: polygon(50% 0, 100% 40%, 86% 40%, 86% 100%, 18% 100%, 18% 40%, 0 40%);
+}
+
+.news-layout {
+  margin-top: 28px;
+}
+
+.lead-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.lead-story,
+.top-news,
+.category-panel,
+.article-card,
+.search-results {
+  background: white;
+  border: 3px solid var(--lego-black);
+  border-radius: 4px;
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.lead-story {
+  position: relative;
+  min-height: 360px;
+}
+
+@media (min-width: 981px) {
+  .lead-story,
+  .top-news {
+    height: 460px;
+  }
+}
+
+.lead-story::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lead-story .lego-scene,
+.lead-story img {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: cover;
+}
+
+.breaking-label {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  background: var(--lego-red);
+  color: white;
+  border: 2px solid var(--lego-black);
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  z-index: 2;
+}
+
+.lead-copy {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 42px;
+  color: white;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+  z-index: 2;
+}
+
+.lead-copy h1 {
+  max-width: 760px;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.05;
+  text-transform: uppercase;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lead-copy p {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lead-copy a,
+.top-news button,
+.category-panel button,
+.section-title button,
+.article-card a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  border: 2px solid var(--lego-black);
+  border-radius: 4px;
+  background: var(--lego-blue);
+  color: white;
+  padding: 10px 16px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.slider-dots {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 2;
+}
+
+.slider-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--lego-black);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider-dots span.active {
+  background: var(--color-lego-blue);
+  transform: scale(1.2);
+}
+
+.slider-dots span:hover {
+  background: var(--color-lego-gray-light);
+}
+
+.top-news {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.top-news h2 {
+  background: var(--lego-red);
+  color: white;
+  padding: 11px 16px;
+  border-bottom: 3px solid var(--lego-black);
+  text-transform: uppercase;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.top-news-item {
+  display: grid;
+  grid-template-columns: 40% 1fr;
+  gap: 14px;
+  padding: 14px 12px;
+  color: var(--lego-black);
+  text-decoration: none;
+  border-bottom: 2px solid #e5e5e5;
+  flex: 1;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.top-news-item:hover {
+  background-color: rgba(0,0,0,0.02);
+}
+
+.top-news-copy {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+}
+
+.top-news-item strong,
+.top-news-item small {
+  display: block;
+}
+
+.top-news-item strong {
+  color: #003f8c;
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.top-news-item small {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--color-lego-gray-dark);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.top-news-item .more-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--lego-blue);
+  letter-spacing: 0.5px;
+}
+
+.top-news-item:hover .more-link {
+  color: #003d7a;
+  text-decoration: underline;
+}
+
+.top-news button {
+  width: calc(100% - 24px);
+  margin: 12px;
+  background: var(--lego-yellow);
+  color: var(--lego-black);
+  flex-shrink: 0;
+}
+
+.category-panels,
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 26px;
+  align-items: stretch;
+}
+
+.category-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.category-panel h2 {
+  color: white;
+  padding: 9px 14px;
+  font-size: 22px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.category-panel ul {
+  list-style: none;
+  padding: 12px 14px 2px;
+  min-height: 112px;
+  flex-grow: 1;
+}
+
+.category-panel li {
+  border-bottom: 1px solid #ddd;
+  padding: 7px 0;
+  font-size: 14px;
+}
+
+.category-panel li a {
+  color: var(--lego-black);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.category-panel button {
+  width: calc(100% - 28px);
+  margin: 10px 14px 14px;
+  background: var(--lego-blue);
+  flex-shrink: 0;
+}
+
+.category-panel:nth-child(2) button { background: var(--lego-red); }
+.category-panel:nth-child(3) button { background: var(--lego-green); }
+.category-panel:nth-child(4) button { background: var(--lego-orange); }
+
+.article-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.article-card div:last-child {
+  padding: 14px;
+}
+
+.article-card span {
+  display: inline-flex;
+  background: var(--lego-yellow);
+  border: 1px solid var(--lego-black);
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.article-card h2 {
+  margin-top: 10px;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.article-card p {
+  margin-top: 8px;
+  color: var(--lego-gray-dark);
+  font-weight: 600;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border-bottom: 3px solid var(--lego-black);
+}
+
+.section-title h1 {
+  font-size: 28px;
+}
+
+.empty-state {
+  background: white;
+  border: 3px solid var(--lego-black);
+  border-radius: 4px;
+  padding: 42px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.18);
+}
+
+.form-error {
+  border: 2px solid var(--lego-red);
+  background: rgba(230,0,18,0.08);
+  color: var(--lego-red);
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.lego-scene {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(96,165,250,0.86), rgba(255,255,255,0.35) 45%, rgba(0,0,0,0.22)),
+    var(--lego-blue);
+}
+
+.lego-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 18%, white 0 18px, transparent 19px),
+    radial-gradient(circle at 72% 10%, white 0 20px, transparent 21px),
+    radial-gradient(circle at 82% 18%, white 0 15px, transparent 16px);
+  opacity: 0.9;
+}
+
+.scene-skyline {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 30%;
+  height: 44%;
+  background:
+    linear-gradient(90deg, #73451f 0 8%, transparent 8% 12%, #c62828 12% 19%, transparent 19% 24%, #4b5563 24% 32%, transparent 32% 38%, #f2cd37 38% 47%, transparent 47% 54%, #0f766e 54% 65%, transparent 65% 70%, #374151 70% 78%, transparent 78% 84%, #8b5cf6 84% 92%, transparent 92%);
+  filter: saturate(1.15);
+}
+
+.scene-road {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -5%;
+  height: 34%;
+  background:
+    linear-gradient(90deg, transparent 0 47%, rgba(255,255,255,0.9) 47% 53%, transparent 53%),
+    #555;
+  transform: perspective(160px) rotateX(18deg);
+}
+
+.scene-minifig {
+  position: absolute;
+  width: 78px;
+  height: 126px;
+  left: 16%;
+  bottom: 10%;
+  background:
+    radial-gradient(circle at 50% 15%, #f2cd37 0 20px, transparent 21px),
+    linear-gradient(#0055a5 0 46%, #1d4ed8 46% 72%, #111827 72%);
+  border: 3px solid rgba(0,0,0,0.55);
+  border-radius: 24px 24px 8px 8px;
+  box-shadow: 150px 10px 0 -8px rgba(230,0,18,0.85), 270px -8px 0 -12px rgba(0,85,165,0.85);
+}
+
+@media (max-width: 980px) {
+  .lego-container {
+    padding: 0 18px;
+  }
+
+  .header-grid,
+  .lead-grid,
+  .category-panels,
+  .article-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-grid {
+    gap: 14px;
+  }
+
+  .brand-lockup {
+    flex-wrap: wrap;
+  }
+
+  .top-search,
+  .user-actions {
+    width: 100%;
+  }
+
+  .top-search input {
+    flex: 1;
+  }
+
+  .nav-row button {
+    min-width: 96px;
+    font-size: 16px;
+    padding: 14px 16px;
+  }
+}
+
+/* Custom form inputs */
+.lego-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 3px solid var(--lego-black);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  outline: none;
+  background-color: var(--lego-white);
+}
+
+.lego-input:focus {
+  border-color: var(--lego-blue);
+  box-shadow: 0 0 0 3px rgba(0, 85, 165, 0.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--lego-gray-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--lego-black);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lego-gray-dark);
+}
+
+/* Hard fallback LEGO background utility overrides */
+.bg-lego-red { background-color: var(--lego-red) !important; }
+.bg-lego-yellow { background-color: var(--lego-yellow) !important; }
+.bg-lego-blue { background-color: var(--lego-blue) !important; }
+.bg-lego-green { background-color: var(--lego-green) !important; }
+.bg-lego-orange { background-color: var(--lego-orange) !important; }
+.bg-lego-black { background-color: var(--lego-black) !important; }
+.bg-lego-white { background-color: var(--lego-white) !important; }
+.bg-lego-gray-light { background-color: var(--lego-gray-light) !important; }
+.bg-lego-gray-dark { background-color: var(--lego-gray-dark) !important; }
+
