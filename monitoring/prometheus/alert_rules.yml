@@ -208,3 +208,18 @@ groups:
         annotations:
           summary: "Health-Endpoint nicht erreichbar"
           description: "GET /actuator/health liefert keine 200-Antworten mehr."
+    # ── 11. Laufende Container / Instanzen (Anzahl) ─────────────────────────────
+  - name: container_counts
+    rules:
+      # Achtung: Setze die erwartete Anzahl unten (vector(3)) auf die gewünschte Anzahl
+      # laufender Container in deiner Umgebung. Beispiel: vector(3) → erwartet 3 Container.
+      - alert: RunningContainersBelowExpected
+        expr: >
+          count(container_start_time_seconds{name=~"legocitytimes.*"})
+          < vector(3)
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Weniger laufende Container als erwartet"
+          description: "Aktuell laufende Container: {{ $value }} — Erwartet: 3. Sofort prüfen!"
