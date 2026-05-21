@@ -132,7 +132,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/alertmanager.generated.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertdata:/alertmanager
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml

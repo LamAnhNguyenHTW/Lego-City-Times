@@ -1,5 +1,19 @@
 # Lego-City-Times
 
+## Start (mit Alertmanager-Render)
+
+Windows PowerShell:
+
+```powershell
+./scripts/up.ps1 -Build
+```
+
+Linux/macOS:
+
+```sh
+./scripts/up.sh --build
+```
+
 ```
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
