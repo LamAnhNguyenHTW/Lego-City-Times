@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { apiFetch, describeApiError } from '../lib/api';
+import ErrorBanner from '../components/ErrorBanner';
 
 interface Category {
   id: number;
@@ -81,10 +83,13 @@ function ArticleImage({ article, variant = 'card' }: { article?: Article; varian
 export default function HomePage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Article[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -97,15 +102,17 @@ export default function HomePage() {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       try {
-        const articleRes = await fetch('/api/v1/articles?status=PUBLISHED&size=50');
-
-        if (!ignore && articleRes.ok) {
-          const data = await articleRes.json();
-          setArticles(data.content || []);
-        }
+        const res = await apiFetch('/api/v1/articles?status=PUBLISHED&size=50');
+        const data = await res.json();
+        if (!ignore) setArticles(data.content || []);
       } catch (error) {
         console.error('Fehler beim Laden der Startseite:', error);
+        if (!ignore) {
+          setArticles([]);
+          setLoadError(describeApiError(error));
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -115,7 +122,7 @@ export default function HomePage() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const handleSearchSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -126,24 +133,22 @@ export default function HomePage() {
     }
 
     setSearching(true);
+    setSearchError(null);
     try {
-      const res = await fetch(`/api/v1/search/articles?q=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data.content || []);
-        return;
-      }
-
-      const fallbackRes = await fetch(`/api/v1/articles?status=PUBLISHED&search=${encodeURIComponent(query)}`);
-      if (fallbackRes.ok) {
+      const res = await apiFetch(`/api/v1/search/articles?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setSearchResults(data.content || []);
+    } catch (error) {
+      console.warn('Search-Service nicht erreichbar, versuche Fallback:', error);
+      try {
+        const fallbackRes = await apiFetch(`/api/v1/articles?status=PUBLISHED&search=${encodeURIComponent(query)}`);
         const data = await fallbackRes.json();
         setSearchResults(data.content || []);
-      } else {
+      } catch (fallbackError) {
+        console.error('Suche komplett fehlgeschlagen:', fallbackError);
         setSearchResults([]);
+        setSearchError(describeApiError(fallbackError));
       }
-    } catch (error) {
-      console.error('Fehler bei der Suche:', error);
-      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -289,7 +294,14 @@ export default function HomePage() {
       </nav>
 
       <main className="lego-container news-layout">
-        {loading ? (
+        {loadError ? (
+          <ErrorBanner
+            variant="full"
+            title="Nachrichten konnten nicht geladen werden"
+            message={loadError}
+            onRetry={() => setReloadKey((k) => k + 1)}
+          />
+        ) : loading ? (
           <div className="empty-state">Nachrichten werden geladen...</div>
         ) : searchResults !== null ? (
           <section className="search-results">
@@ -299,6 +311,12 @@ export default function HomePage() {
             </div>
             {searching ? (
               <div className="empty-state">Suche lauft...</div>
+            ) : searchError ? (
+              <ErrorBanner
+                title="Suche nicht verfügbar"
+                message={searchError}
+                onRetry={() => handleSearchSubmit({ preventDefault: () => {} } as React.FormEvent)}
+              />
             ) : visibleArticles.length === 0 ? (
               <div className="empty-state">Keine Artikel gefunden.</div>
             ) : (

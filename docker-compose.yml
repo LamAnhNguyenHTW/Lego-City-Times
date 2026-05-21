@@ -36,6 +36,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Automatisiertes DB-Backup ──────────────────────────────────────────────
+  pg-backup:
+    image: prodrigestivill/postgres-backup-local:17
+    container_name: legocitytimes-pg-backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: legocitytimes
+      POSTGRES_USER: legocity
+      POSTGRES_PASSWORD: legocity
+      POSTGRES_EXTRA_OPTS: "-Z6 --blobs"
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      HEALTHCHECK_PORT: 8080
+    volumes:
+      - pgbackups:/backups
+    restart: unless-stopped
+
   # ── Anwendung ──────────────────────────────────────────────────────────────
   content-service:
     build:
@@ -195,6 +217,7 @@ services:
 
 volumes:
   pgdata:   { name: legocitytimes-pgdata }
+  pgbackups: { name: legocitytimes-pgbackups }
   uploads:  { name: legocitytimes-uploads }
   promdata: { name: legocitytimes-promdata }
   alertdata: { name: legocitytimes-alertdata }
