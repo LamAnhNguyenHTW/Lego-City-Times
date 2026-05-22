@@ -1,2 +1,5 @@
+# Secrets – niemals einchecken!
+secrets/*.txt
+.env
 .env
 monitoring/alertmanager/alertmanager.generated.yml
