@@ -1,0 +1,3 @@
+# Secrets – niemals einchecken!
+secrets/*.txt
+.env

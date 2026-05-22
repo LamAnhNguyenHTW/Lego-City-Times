@@ -8,10 +8,10 @@ services:
       discovery.type: single-node
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
-    ports:
-      - "9200:9200"
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    networks:
+      - db-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -fs \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\""]
@@ -19,6 +19,10 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   postgres:
     image: postgres:17-alpine
@@ -26,15 +30,29 @@ services:
     environment:
       POSTGRES_DB: legocitytimes
       POSTGRES_USER: legocity
-      POSTGRES_PASSWORD: legocity
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - pgdata:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    networks:
+      - db-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U legocity -d legocitytimes"]
       interval: 10s
       timeout: 5s
       retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - DAC_READ_SEARCH
 
   # ── Anwendung ──────────────────────────────────────────────────────────────
   content-service:
@@ -52,9 +70,13 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/legocitytimes
       SPRING_DATASOURCE_USERNAME: legocity
-      SPRING_DATASOURCE_PASSWORD: legocity
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       APP_IMAGE_UPLOAD_DIR: /app/uploads/images
       APP_SEARCH_SERVICE_URL: http://search-service:8080
+    networks:
+      - app-net
+      - db-net
+      - monitoring-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
@@ -62,6 +84,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ── Reverse Proxy ──────────────────────────────────────────────────────────
   nginx:
@@ -71,9 +97,28 @@ services:
       - content-service
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./monitoring/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./monitoring/nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - app-net
+      - monitoring-net
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:latest
@@ -82,7 +127,14 @@ services:
       - nginx
     command:
       - --nginx.scrape-uri=http://nginx/stub_status
+    networks:
+      - monitoring-net
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ── Container-Metriken ─────────────────────────────────────────────────────
   cadvisor:
@@ -95,7 +147,11 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoring-net
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   # ── PostgreSQL-Exporter ────────────────────────────────────────────────────
   postgres-exporter:
@@ -105,15 +161,25 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATA_SOURCE_NAME: "postgresql://legocity:legocity@postgres:5432/legocitytimes?sslmode=disable"
+      DATA_SOURCE_URI: "postgres:5432/legocitytimes?sslmode=disable"
+      DATA_SOURCE_USER: legocity
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    networks:
+      - db-net
+      - monitoring-net
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ── Prometheus ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
     container_name: legocitytimes-prometheus
-    ports:
-      - "9090:9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
@@ -123,21 +189,35 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --web.enable-lifecycle
+    networks:
+      - monitoring-net
     restart: unless-stopped
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ── Alertmanager ───────────────────────────────────────────────────────────
   alertmanager:
     image: prom/alertmanager:latest
     container_name: legocitytimes-alertmanager
-    ports:
-      - "9093:9093"
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertdata:/alertmanager
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
+    networks:
+      - monitoring-net
     restart: unless-stopped
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ── Grafana ────────────────────────────────────────────────────────────────
   grafana:
@@ -153,11 +233,22 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/legocitytimes.json
+    secrets:
+      - grafana_admin_password
+    networks:
+      - monitoring-net
     restart: unless-stopped
-
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
 
   search-service:
     build:
@@ -168,10 +259,11 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
-    ports:
-      - "8081:8080"
     environment:
       SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+    networks:
+      - app-net
+      - db-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
@@ -179,24 +271,60 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     image: legocitytimes/frontend:latest
-    container_name: legocitytimes-frontend
     depends_on:
       - content-service
       - search-service
+    networks:
+      - app-net
     restart: unless-stopped
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
 
+networks:
+  app-net:
+    driver: bridge
+    name: legocitytimes-app-net
+  db-net:
+    driver: bridge
+    name: legocitytimes-db-net
+    internal: true
+  monitoring-net:
+    driver: bridge
+    name: legocitytimes-monitoring-net
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_password.txt
 
 volumes:
-  pgdata:   { name: legocitytimes-pgdata }
-  uploads:  { name: legocitytimes-uploads }
-  promdata: { name: legocitytimes-promdata }
-  alertdata: { name: legocitytimes-alertdata }
+  pgdata:      { name: legocitytimes-pgdata }
+  uploads:     { name: legocitytimes-uploads }
+  promdata:    { name: legocitytimes-promdata }
+  alertdata:   { name: legocitytimes-alertdata }
   grafanadata: { name: legocitytimes-grafanadata }
-  esdata: { name: legocitytimes-esdata }
+  esdata:      { name: legocitytimes-esdata }
