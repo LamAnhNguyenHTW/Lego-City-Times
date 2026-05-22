@@ -1,496 +1,1139 @@
 {
-  "title": "Lego City Times — Monitoring",
-  "uid": "legocitytimes-monitoring",
-  "description": "Monitoring-Konzept: CPU, Memory, Container-Status, HTTP-Metriken, DB-Verbindungen, Latenz",
-  "schemaVersion": 38,
-  "version": 1,
-  "refresh": "30s",
-  "timezone": "browser",
-  "tags": ["legocitytimes"],
-  "time": { "from": "now-1h", "to": "now" },
-  "timepicker": {},
-  "graphTooltip": 1,
-  "panels": [
+    "title":  "Lego City Times — Monitoring",
+    "uid":  "legocitytimes-monitoring",
+    "description":  "Monitoring-Konzept: CPU, Memory, Container-Status, HTTP-Metriken, DB-Verbindungen, Latenz",
+    "schemaVersion":  38,
+    "version":  1,
+    "refresh":  "30s",
+    "timezone":  "browser",
+    "tags":  [
+                 "legocitytimes"
+             ],
+    "time":  {
+                 "from":  "now-1h",
+                 "to":  "now"
+             },
+    "timepicker":  {
 
-    {
-      "id": 1, "type": "row", "title": "Container Ressourcen",
-      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
-    },
-
-    {
-      "id": 2, "type": "timeseries",
-      "title": "CPU-Auslastung pro Container (%)",
-      "description": "Warnung >70% / 2 Min | Kritisch >90% / 1 Min",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\"legocitytimes.*\"}[2m]) * 100",
-          "legendFormat": "{{ name }}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "red", "value": 90 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 3, "type": "timeseries",
-      "title": "Arbeitsspeicher pro Container (MB)",
-      "description": "Warnung >80% | Kritisch >95% des Memory-Limits",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "container_memory_working_set_bytes{name=~\"legocitytimes.*\"} / 1024 / 1024",
-          "legendFormat": "{{ name }}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "decmbytes",
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 4, "type": "row", "title": "Service Status",
-      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }
-    },
-
-    {
-      "id": 5, "type": "stat",
-      "title": "Laufende Container",
-      "description": "Anzahl erreichbarer Scrape-Targets",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 10 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "count(up{job=~\"content-service|nginx|postgres|cadvisor\"} == 1)",
-          "legendFormat": "Online",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 2 },
-              { "color": "green", "value": 4 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "colorMode": "background", "graphMode": "none",
-        "justifyMode": "center", "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      }
-    },
-
-    {
-      "id": 6, "type": "stat",
-      "title": "Health-Status Content-Service",
-      "description": "1 = UP | 0 = DOWN",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 10 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "up{job=\"content-service\"}",
-          "legendFormat": "content-service",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "colorMode": "background", "graphMode": "none",
-        "justifyMode": "center", "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      }
-    },
-
-    {
-      "id": 7, "type": "stat",
-      "title": "Health-Status PostgreSQL",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 10 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "up{job=\"postgres\"}",
-          "legendFormat": "postgres",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "colorMode": "background", "graphMode": "none",
-        "justifyMode": "center", "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      }
-    },
-
-    {
-      "id": 8, "type": "stat",
-      "title": "Health-Status Nginx",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 10 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "up{job=\"nginx\"}",
-          "legendFormat": "nginx",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "colorMode": "background", "graphMode": "none",
-        "justifyMode": "center", "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      }
-    },
-
-    {
-      "id": 9, "type": "row", "title": "HTTP Metriken (Reverse Proxy)",
-      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
-    },
-
-    {
-      "id": 10, "type": "timeseries",
-      "title": "HTTP Request-Rate am Reverse Proxy (req/s)",
-      "description": "Warnung bei Einbruch >30% | Kritisch >60%",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(nginx_http_requests_total[5m])",
-          "legendFormat": "Requests/s",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "nginx_connections_active",
-          "legendFormat": "Aktive Verbindungen",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 11, "type": "timeseries",
-      "title": "HTTP 5xx-Rate am Reverse Proxy (%)",
-      "description": "Warnung >1% | Kritisch >5% aller Requests",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\",job=\"content-service\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"content-service\"}[5m])) * 100",
-          "legendFormat": "5xx Rate %",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "color": { "mode": "fixed", "fixedColor": "red" },
-          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "showPoints": "never" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 12, "type": "row", "title": "Latenz & Datenbank",
-      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
-    },
-
-    {
-      "id": 13, "type": "timeseries",
-      "title": "Antwortzeit am Reverse Proxy — p50 / p95 / p99 (s)",
-      "description": "Warnung p95 >500ms | Kritisch p95 >1s",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
-          "legendFormat": "p50",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
-          "legendFormat": "p95",
-          "refId": "B"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
-          "legendFormat": "p99",
-          "refId": "C"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2, "showPoints": "never" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.5 },
-              { "color": "red", "value": 1.0 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 14, "type": "gauge",
-      "title": "Datenbankverbindungen (% von max_conn)",
-      "description": "Warnung >80% | Kritisch >95% max_conn",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 24 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(pg_stat_activity_count{datname=\"legocitytimes\"}) / scalar(pg_settings_max_connections) * 100",
-          "legendFormat": "Verbindungen %",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0, "max": 100,
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 80 },
-              { "color": "red", "value": 95 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "showThresholdLabels": true,
-        "showThresholdMarkers": true,
-        "orientation": "auto"
-      }
-    },
-
-    {
-      "id": 15, "type": "timeseries",
-      "title": "DB Verbindungen (absolut)",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 24 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (state) (pg_stat_activity_count{datname=\"legocitytimes\"})",
-          "legendFormat": "{{ state }}",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "pg_settings_max_connections",
-          "legendFormat": "max_conn",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 16, "type": "row", "title": "Backend Performance",
-      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }
-    },
-
-    {
-      "id": 17, "type": "timeseries",
-      "title": "Backend-Response-Zeit p95 pro Endpunkt (s)",
-      "description": "Warnung p95 >400ms | Kritisch p95 >800ms",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 33 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le, uri, method))",
-          "legendFormat": "{{ method }} {{ uri }}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2, "showPoints": "never" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.4 },
-              { "color": "red", "value": 0.8 }
-            ]
-          }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"] },
-        "tooltip": { "mode": "multi" }
-      }
-    },
-
-    {
-      "id": 18, "type": "timeseries",
-      "title": "Storage-Erreichbarkeit (Actuator Health)",
-      "description": "Gibt es 200-Antworten auf /actuator/health?",
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 33 },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(http_server_requests_seconds_count{uri=\"/actuator/health\",status=\"200\",job=\"content-service\"}[5m])",
-          "legendFormat": "Health OK (req/s)",
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(http_server_requests_seconds_count{uri=\"/actuator/health\",status!=\"200\",job=\"content-service\"}[5m])",
-          "legendFormat": "Health FEHLER (req/s)",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" }
-        }
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      }
-    }
-
-  ]
+                   },
+    "graphTooltip":  1,
+    "panels":  [
+                   {
+                       "id":  1,
+                       "type":  "row",
+                       "title":  "Container Ressourcen",
+                       "collapsed":  false,
+                       "gridPos":  {
+                                       "h":  1,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  2,
+                       "type":  "timeseries",
+                       "title":  "CPU-Auslastung pro Container (%)",
+                       "description":  "Warnung \u003e70% / 2 Min | Kritisch \u003e90% / 1 Min",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  1
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "rate(container_cpu_usage_seconds_total{name=~\"(legocitytimes.*|lego-city-times-.*)\"}[2m]) * 100",
+                                           "legendFormat":  "{{ name }}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  10,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  70
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  90
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  3,
+                       "type":  "timeseries",
+                       "title":  "Arbeitsspeicher pro Container (MB)",
+                       "description":  "Warnung \u003e80% | Kritisch \u003e95% des Memory-Limits",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  1
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "container_memory_working_set_bytes{name=~\"(legocitytimes.*|lego-city-times-.*)\"} / 1024 / 1024",
+                                           "legendFormat":  "{{ name }}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "decmbytes",
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  10,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  4,
+                       "type":  "row",
+                       "title":  "Service Status",
+                       "collapsed":  false,
+                       "gridPos":  {
+                                       "h":  1,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  9
+                                   }
+                   },
+                   {
+                       "id":  5,
+                       "type":  "stat",
+                       "title":  "Laufende Container",
+                       "description":  "Anzahl laufender Docker-Container im Compose-Stack",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  0,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "count(container_start_time_seconds{name=~\"(legocitytimes.*|lego-city-times-.*)\"}) or on() vector(0)",
+                                           "legendFormat":  "Online",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  10
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  17
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  6,
+                       "type":  "stat",
+                       "title":  "Content-Service",
+                       "description":  "Anzahl erreichbarer Replicas",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  4,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(up{job=\"content-service\"} == 1) or on() vector(0)",
+                                           "legendFormat":  "content replicas",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "color":  "red",
+                                                                                                           "text":  "DOWN"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "color":  "yellow",
+                                                                                                           "text":  "DEGRADED"
+                                                                                                       },
+                                                                                                 "2":  {
+                                                                                                           "color":  "green",
+                                                                                                           "text":  "UP"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ],
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  2
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  19,
+                       "type":  "stat",
+                       "title":  "Search-Service",
+                       "description":  "Anzahl erreichbarer Replicas",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  8,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(up{job=\"search-service\"} == 1) or on() vector(0)",
+                                           "legendFormat":  "search replicas",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "color":  "red",
+                                                                                                           "text":  "DOWN"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "color":  "yellow",
+                                                                                                           "text":  "DEGRADED"
+                                                                                                       },
+                                                                                                 "2":  {
+                                                                                                           "color":  "green",
+                                                                                                           "text":  "UP"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ],
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  2
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  20,
+                       "type":  "stat",
+                       "title":  "Frontend",
+                       "description":  "Anzahl laufender Frontend-Container",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  12,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "count(container_start_time_seconds{name=~\"lego-city-times-frontend-.*\"}) or on() vector(0)",
+                                           "legendFormat":  "frontend replicas",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "color":  "red",
+                                                                                                           "text":  "DOWN"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "color":  "yellow",
+                                                                                                           "text":  "DEGRADED"
+                                                                                                       },
+                                                                                                 "2":  {
+                                                                                                           "color":  "yellow",
+                                                                                                           "text":  "DEGRADED"
+                                                                                                       },
+                                                                                                 "3":  {
+                                                                                                           "color":  "green",
+                                                                                                           "text":  "UP"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ],
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  3
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  7,
+                       "type":  "stat",
+                       "title":  "Health-Status PostgreSQL",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  16,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(pg_up{job=\"postgres\"}) or on() vector(0)",
+                                           "legendFormat":  "postgres db",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "color":  "red",
+                                                                                                           "text":  "DOWN"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "color":  "green",
+                                                                                                           "text":  "UP"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ],
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  1
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  8,
+                       "type":  "stat",
+                       "title":  "Health-Status Nginx",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  4,
+                                       "w":  4,
+                                       "x":  20,
+                                       "y":  10
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(up{job=\"nginx\"} == 1) or on() vector(0)",
+                                           "legendFormat":  "nginx",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "color":  "red",
+                                                                                                           "text":  "DOWN"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "color":  "green",
+                                                                                                           "text":  "UP"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ],
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  1
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "colorMode":  "background",
+                                       "graphMode":  "none",
+                                       "justifyMode":  "center",
+                                       "orientation":  "auto",
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "textMode":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  9,
+                       "type":  "row",
+                       "title":  "HTTP Metriken (Reverse Proxy)",
+                       "collapsed":  false,
+                       "gridPos":  {
+                                       "h":  1,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  14
+                                   }
+                   },
+                   {
+                       "id":  10,
+                       "type":  "timeseries",
+                       "title":  "HTTP Request-Rate am Reverse Proxy (req/s)",
+                       "description":  "Warnung bei Einbruch \u003e30% | Kritisch \u003e60%",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  15
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "rate(nginx_http_requests_total[5m])",
+                                           "legendFormat":  "Requests/s",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "nginx_connections_active",
+                                           "legendFormat":  "Aktive Verbindungen",
+                                           "refId":  "B"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  10,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  11,
+                       "type":  "timeseries",
+                       "title":  "HTTP 5xx-Rate am Reverse Proxy (%)",
+                       "description":  "Warnung \u003e1% | Kritisch \u003e5% aller Requests",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  15
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(rate(http_server_requests_seconds_count{status=~\"5..\",job=\"content-service\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"content-service\"}[5m])) * 100",
+                                           "legendFormat":  "5xx Rate %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "color":  {
+                                                                          "mode":  "fixed",
+                                                                          "fixedColor":  "red"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  20,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  5
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  12,
+                       "type":  "row",
+                       "title":  "Latenz \u0026 Datenbank",
+                       "collapsed":  false,
+                       "gridPos":  {
+                                       "h":  1,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  23
+                                   }
+                   },
+                   {
+                       "id":  13,
+                       "type":  "timeseries",
+                       "title":  "Antwortzeit am Reverse Proxy — p50 / p95 / p99 (s)",
+                       "description":  "Warnung p95 \u003e500ms | Kritisch p95 \u003e1s",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  24
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
+                                           "legendFormat":  "p50",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
+                                           "legendFormat":  "p95",
+                                           "refId":  "B"
+                                       },
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le))",
+                                           "legendFormat":  "p99",
+                                           "refId":  "C"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "s",
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  5,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  0.5
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  1.0
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  14,
+                       "type":  "gauge",
+                       "title":  "Datenbankverbindungen (% von max_conn)",
+                       "description":  "Warnung \u003e80% | Kritisch \u003e95% max_conn",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  6,
+                                       "x":  12,
+                                       "y":  24
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum(pg_stat_activity_count{datname=\"legocitytimes\"}) / scalar(pg_settings_max_connections) * 100",
+                                           "legendFormat":  "Verbindungen %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "min":  0,
+                                                            "max":  100,
+                                                            "color":  {
+                                                                          "mode":  "thresholds"
+                                                                      },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  80
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  95
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "reduceOptions":  {
+                                                             "calcs":  [
+                                                                           "lastNotNull"
+                                                                       ],
+                                                             "fields":  "",
+                                                             "values":  false
+                                                         },
+                                       "showThresholdLabels":  true,
+                                       "showThresholdMarkers":  true,
+                                       "orientation":  "auto"
+                                   }
+                   },
+                   {
+                       "id":  15,
+                       "type":  "timeseries",
+                       "title":  "DB Verbindungen (absolut)",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  6,
+                                       "x":  18,
+                                       "y":  24
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "sum by (state) (pg_stat_activity_count{datname=\"legocitytimes\"})",
+                                           "legendFormat":  "{{ state }}",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "pg_settings_max_connections",
+                                           "legendFormat":  "max_conn",
+                                           "refId":  "B"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  10,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  16,
+                       "type":  "row",
+                       "title":  "Backend Performance",
+                       "collapsed":  false,
+                       "gridPos":  {
+                                       "h":  1,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  32
+                                   }
+                   },
+                   {
+                       "id":  17,
+                       "type":  "timeseries",
+                       "title":  "Backend-Response-Zeit p95 pro Endpunkt (s)",
+                       "description":  "Warnung p95 \u003e400ms | Kritisch p95 \u003e800ms",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  16,
+                                       "x":  0,
+                                       "y":  33
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"content-service\"}[5m])) by (le, uri, method))",
+                                           "legendFormat":  "{{ method }} {{ uri }}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "s",
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  5,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       },
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "yellow",
+                                                                                                 "value":  0.4
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  0.8
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "table",
+                                                      "placement":  "right",
+                                                      "calcs":  [
+                                                                    "lastNotNull",
+                                                                    "max"
+                                                                ]
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   },
+                   {
+                       "id":  18,
+                       "type":  "timeseries",
+                       "title":  "Storage-Erreichbarkeit (Actuator Health)",
+                       "description":  "Gibt es 200-Antworten auf /actuator/health?",
+                       "datasource":  {
+                                          "type":  "prometheus",
+                                          "uid":  "prometheus"
+                                      },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  8,
+                                       "x":  16,
+                                       "y":  33
+                                   },
+                       "targets":  [
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "rate(http_server_requests_seconds_count{uri=\"/actuator/health\",status=\"200\",job=\"content-service\"}[5m])",
+                                           "legendFormat":  "Health OK (req/s)",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "datasource":  {
+                                                              "type":  "prometheus",
+                                                              "uid":  "prometheus"
+                                                          },
+                                           "expr":  "rate(http_server_requests_seconds_count{uri=\"/actuator/health\",status!=\"200\",job=\"content-service\"}[5m])",
+                                           "legendFormat":  "Health FEHLER (req/s)",
+                                           "refId":  "B"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "color":  {
+                                                                          "mode":  "palette-classic"
+                                                                      },
+                                                            "custom":  {
+                                                                           "drawStyle":  "line",
+                                                                           "fillOpacity":  10,
+                                                                           "lineWidth":  2,
+                                                                           "showPoints":  "never"
+                                                                       }
+                                                        }
+                                       },
+                       "options":  {
+                                       "legend":  {
+                                                      "displayMode":  "list",
+                                                      "placement":  "bottom"
+                                                  },
+                                       "tooltip":  {
+                                                       "mode":  "multi"
+                                                   }
+                                   }
+                   }
+               ]
 }

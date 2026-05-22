@@ -12,7 +12,7 @@ Definiert in [docker-compose.yml](../docker-compose.yml) als Service `pg-backup`
 |---|---|---|
 | `POSTGRES_HOST` | `postgres` | Ziel-DB im Compose-Netz |
 | `POSTGRES_DB` | `legocitytimes` | Datenbank |
-| `POSTGRES_USER/PASSWORD` | `legocity / legocity` | Auth |
+| `POSTGRES_USER/PASSWORD` | `legocity / Docker Secret postgres_password` | Auth |
 | `POSTGRES_EXTRA_OPTS` | `-Z6 --blobs` | Kompressionslevel 6, BLOBs inkludieren |
 | `SCHEDULE` | `@daily` | Cron-Ausdruck — täglich um Mitternacht |
 | `BACKUP_KEEP_DAYS` | `7` | Tagesbackups: 7 Tage |

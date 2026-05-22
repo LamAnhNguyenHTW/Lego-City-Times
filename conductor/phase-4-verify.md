@@ -1,4 +1,4 @@
-# Phase 4 Verification
+﻿# Phase 4 Verification
 
 ## Start stack
 
@@ -13,16 +13,13 @@ Expected services:
 - `legocitytimes-elasticsearch`
 - `legocitytimes-search-service`
 
-Swagger UI for the search service:
-
-```bash
-curl http://localhost:8081/swagger-ui.html
-```
+> Hinweis: nginx terminiert TLS mit selbst-signiertem Zertifikat — `curl` braucht `-k`.
+> Der Index-Endpunkt `/internal/search/...` wird über nginx an den `search-service` geroutet.
 
 ## Index a published article
 
 ```bash
-curl -i -X POST http://localhost:8081/internal/search/articles/index \
+curl -ki -X POST https://localhost/internal/search/articles/index \
   -H "Content-Type: application/json" \
   -d '{
     "id": "article-verify-1",
@@ -46,7 +43,7 @@ Expected: `HTTP/1.1 200`.
 ## Search it
 
 ```bash
-curl "http://localhost:8081/api/v1/search/articles?q=train&categoryId=transport&tagId=rail&sort=relevance"
+curl -k "https://localhost/api/v1/search/articles?q=train&categoryId=transport&tagId=rail&sort=relevance"
 ```
 
 Expected: response contains `article-verify-1`.
@@ -54,7 +51,7 @@ Expected: response contains `article-verify-1`.
 ## Delete it
 
 ```bash
-curl -i -X DELETE http://localhost:8081/internal/search/articles/article-verify-1
+curl -ki -X DELETE https://localhost/internal/search/articles/article-verify-1
 ```
 
 Expected: `HTTP/1.1 204`.
@@ -62,7 +59,7 @@ Expected: `HTTP/1.1 204`.
 ## Confirm it is gone
 
 ```bash
-curl "http://localhost:8081/api/v1/search/articles?q=train&categoryId=transport&tagId=rail"
+curl -k "https://localhost/api/v1/search/articles?q=train&categoryId=transport&tagId=rail"
 ```
 
 Expected: `totalElements` is `0` for the verification article.
@@ -70,7 +67,7 @@ Expected: `totalElements` is `0` for the verification article.
 ## Verify DRAFT/ARCHIVED safety rule
 
 ```bash
-curl -i -X POST http://localhost:8081/internal/search/articles/index \
+curl -ki -X POST https://localhost/internal/search/articles/index \
   -H "Content-Type: application/json" \
   -d '{
     "id": "article-verify-1",
@@ -82,3 +79,5 @@ curl -i -X POST http://localhost:8081/internal/search/articles/index \
 ```
 
 Expected: `HTTP/1.1 200`, document is not searchable.
+
+

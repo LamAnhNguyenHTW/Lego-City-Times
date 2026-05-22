@@ -23,15 +23,19 @@ Eine Microservice-basierte Demo-Anwendung für ein Online-Nachrichtenportal. Die
 
 - Docker Desktop (oder Docker Engine + Docker Compose Plugin)
 - Mind. 4 GB freier RAM (Elasticsearch + Postgres + Java-Services)
-- Freie Host-Ports: `80`, `3000`, `8081`, `9090`, `9093`, `9200`
+- Freie Host-Ports: `80`, `443` (Nginx) und `3000` (Grafana). Alle übrigen Dienste (Prometheus, Alertmanager, Elasticsearch, …) sind nur intern erreichbar.
 
 ## Start
 
-```bash
-docker compose up -d --build
+```powershell
+Copy-Item .env.example .env
+# Danach SLACK_API_URL in .env mit der echten Slack Webhook URL setzen.
+.\scripts\up.ps1 -Build
 ```
 
 Beim ersten Start werden die Images gebaut, Volumes angelegt und Datenbank-Tabellen sowie Elasticsearch-Index **automatisch** erzeugt (JPA `ddl-auto` + Spring Data Elasticsearch Mapping). Keine manuellen Initialisierungs-Schritte nötig.
+
+Alertmanager wird vor dem Start aus `monitoring/alertmanager/alertmanager.yml.tmpl` nach `monitoring/alertmanager/alertmanager.generated.yml` gerendert. Die Slack Webhook URL kommt aus `SLACK_API_URL` in `.env`; die generierte Datei bleibt lokal und wird nicht eingecheckt.
 
 Status prüfen:
 
@@ -43,18 +47,23 @@ Alle Services sollten nach ca. 30–60 s `healthy` melden.
 
 ## URLs
 
+> nginx terminiert TLS mit einem selbst-signierten Zertifikat. Aufrufe über `http://localhost/`
+> werden automatisch auf `https://localhost/` umgeleitet; der Browser zeigt eine Zertifikatswarnung.
+> Für `curl` die Option `-k` verwenden.
+
 | Zweck | URL |
 |---|---|
-| **Webanwendung (Frontend)** | http://localhost/ |
-| **Daten-Endpunkt (Artikel anlegen)** | `POST http://localhost/api/v1/articles` |
-| **Health-Check (Content-Service)** | http://localhost/actuator/health |
-| **Health-Check (Search-Service)** | http://localhost:8081/actuator/health |
-| Such-API | `GET http://localhost/api/v1/search/articles?q=...` |
-| Swagger UI (Content) | http://localhost/swagger-ui/index.html |
-| Statische Uploads | http://localhost/uploads/... |
-| Grafana | http://localhost:3000 (admin / admin) |
-| Prometheus | http://localhost:9090 |
-| Alertmanager | http://localhost:9093 |
+| **Webanwendung (Frontend)** | https://localhost/ |
+| **Daten verarbeitender Web-Endpunkt** | `POST https://localhost/internal/search/articles/index` |
+| **Health-Check (Content-Service)** | https://localhost/actuator/health |
+| **Health-Check (Search-Service)** | intern via Docker-Healthcheck + Prometheus-Scrape (kein Host-Port) |
+| Such-API | `GET https://localhost/api/v1/search/articles?q=...` |
+| Artikel-API (Anlegen, **ADMIN-Auth nötig**) | `POST https://localhost/api/v1/articles` |
+| Swagger UI (Content) | https://localhost/swagger-ui/index.html |
+| Statische Uploads | https://localhost/uploads/... |
+| Grafana | http://localhost:3000 (`admin` / Passwort aus `secrets/grafana_password.txt`) |
+| Prometheus | nur intern (`monitoring-net`) — Visualisierung über Grafana |
+| Alertmanager | nur intern (`monitoring-net`) |
 
 ## API-Endpunkte (Auswahl)
 
@@ -75,29 +84,32 @@ Alle Services sollten nach ca. 30–60 s `healthy` melden.
 
 ## Beispiel-Requests
 
-Artikel anlegen:
+Daten senden (Such-Index-Endpunkt — keine Authentifizierung nötig):
 
 ```bash
-curl -X POST http://localhost/api/v1/articles \
+curl -k -X POST https://localhost/internal/search/articles/index \
   -H "Content-Type: application/json" \
   -d '{
+    "id": "demo-1",
     "title": "Neues Stadion in Lego City",
     "slug": "neues-stadion",
     "content": "In Lego City wurde heute...",
-    "summary": "Eröffnung des neuen Stadions"
+    "author": "Redaktion",
+    "status": "PUBLISHED",
+    "publishedAt": "2026-05-22T00:00:00Z"
   }'
 ```
 
 Artikel suchen:
 
 ```bash
-curl "http://localhost/api/v1/search/articles?q=stadion"
+curl -k "https://localhost/api/v1/search/articles?q=stadion"
 ```
 
 Health-Status:
 
 ```bash
-curl http://localhost/actuator/health
+curl -k https://localhost/actuator/health
 ```
 
 ## Persistenz (Volumes)
@@ -137,4 +149,4 @@ docker compose down -v
 
 ## Lasttests
 
-Lasttest-Skripte (k6) und dokumentierte Ergebnisse: siehe [loadtests/README.md](loadtests/README.md).
+Lasttest-Skripte (k6) und dokumentierte Ergebnisse: siehe [load-tests/k6/README.md](load-tests/k6/README.md).

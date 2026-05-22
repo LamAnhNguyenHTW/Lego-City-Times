@@ -16,8 +16,17 @@ scrape_configs:
   # Spring Boot Actuator → Prometheus
   - job_name: "content-service"
     metrics_path: "/actuator/prometheus"
-    static_configs:
-      - targets: ["content-service:8080"]
+    dns_sd_configs:
+      - names: ["content-service"]
+        type: A
+        port: 8080
+
+  - job_name: "search-service"
+    metrics_path: "/actuator/prometheus"
+    dns_sd_configs:
+      - names: ["search-service"]
+        type: A
+        port: 8080
 
   # cAdvisor → Container-Metriken (CPU, Memory, Instanzen)
   - job_name: "cadvisor"

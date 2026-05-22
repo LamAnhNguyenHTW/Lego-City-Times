@@ -3,7 +3,7 @@ import { check } from 'k6';
 import { envUrl } from './env.js';
 
 export function getHomePage() {
-  const baseUrl = envUrl('WEB_BASE_URL', 'http://localhost');
+  const baseUrl = envUrl('WEB_BASE_URL', 'https://localhost');
   const res = http.get(`${baseUrl}/`, {
     redirects: 0,
     headers: {
