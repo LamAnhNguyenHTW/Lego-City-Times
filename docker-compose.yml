@@ -3,9 +3,11 @@ services:
   # ── Datenbank ──────────────────────────────────────────────────────────────
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.2.8
-    container_name: legocitytimes-elasticsearch
     environment:
-      discovery.type: single-node
+      cluster.name: legocitytimes-cluster
+      network.host: 0.0.0.0
+      discovery.seed_hosts: elasticsearch
+      cluster.initial_master_nodes: elasticsearch
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     volumes:
@@ -24,16 +26,15 @@ services:
     cap_drop:
       - ALL
     deploy:
-      replicas: 3
+      replicas: 2
       update_config:
         parallelism: 1
-        delay: 10s
-        order: start-first
+        delay: 30s
+        order: stop-first
       restart_policy:
         condition: on-failure
-        delay: 5s
+        delay: 10s
         max_attempts: 3
-
 
   postgres:
     image: postgres:17-alpine
@@ -266,7 +267,6 @@ services:
       context: ./search-service
       dockerfile: Dockerfile
     image: legocitytimes/search-service:latest
-    container_name: legocitytimes-search-service
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -287,7 +287,7 @@ services:
     cap_drop:
       - ALL
     deploy:
-      replicas: 3
+      replicas: 2
       update_config:
         parallelism: 1
         delay: 10s
@@ -296,6 +296,7 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 3
+
 
   frontend:
     build:
