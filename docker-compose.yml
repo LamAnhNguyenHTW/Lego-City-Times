@@ -23,6 +23,17 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
 
   postgres:
     image: postgres:17-alpine
@@ -275,6 +286,16 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
 
   frontend:
     build:
