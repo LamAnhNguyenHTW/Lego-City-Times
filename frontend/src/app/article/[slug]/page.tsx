@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { apiFetch, ApiError, describeApiError } from '../../../lib/api';
 
 interface Category {
   id: number;
@@ -47,16 +48,18 @@ export default function ArticleDetailPage({ params }: PageProps) {
 
     async function fetchArticle() {
       try {
-        const res = await fetch(`/api/v1/articles/slug/${slug}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (!ignore) setArticle(data);
-        } else if (!ignore) {
-          setError('Artikel wurde nicht gefunden.');
-        }
+        const res = await apiFetch(`/api/v1/articles/slug/${slug}`);
+        const data = await res.json();
+        if (!ignore) setArticle(data);
       } catch (err) {
-        console.error(err);
-        if (!ignore) setError('Verbindung zum Server fehlgeschlagen.');
+        console.error('Artikel laden fehlgeschlagen:', err);
+        if (!ignore) {
+          if (err instanceof ApiError && err.kind === 'notfound') {
+            setError('Artikel wurde nicht gefunden.');
+          } else {
+            setError(describeApiError(err));
+          }
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
