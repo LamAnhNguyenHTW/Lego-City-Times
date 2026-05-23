@@ -4,20 +4,22 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.2.8
     container_name: legocitytimes-elasticsearch
+    cpus: "2.0"
+    mem_limit: 2g
     environment:
       cluster.name: legocitytimes-cluster
       network.host: 0.0.0.0
       discovery.seed_hosts: elasticsearch
       cluster.initial_master_nodes: elasticsearch
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
       - db-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\""]
+      test: [ "CMD-SHELL", "curl -fs \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s\"" ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -29,8 +31,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1g
+          cpus: "2.0"
+          memory: 2g
       restart_policy:
         condition: on-failure
         delay: 10s
@@ -51,7 +53,7 @@ services:
       - db-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U legocity -d legocitytimes"]
+      test: [ "CMD-SHELL", "pg_isready -U legocity -d legocitytimes" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -125,7 +127,7 @@ services:
       - monitoring-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -145,6 +147,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: legocitytimes-nginx
+    cpus: "1.0"
+    mem_limit: 512m
     depends_on:
       content-service:
         condition: service_healthy
@@ -163,7 +167,7 @@ services:
       - monitoring-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -185,8 +189,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128m
+          cpus: "1.0"
+          memory: 512m
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:latest
@@ -353,18 +357,21 @@ services:
       context: ./search-service
       dockerfile: Dockerfile
     image: legocitytimes/search-service:latest
+    cpus: "1.5"
+    mem_limit: 1g
     depends_on:
       elasticsearch:
         condition: service_healthy
     environment:
       SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70
     networks:
       - app-net
       - db-net
       - monitoring-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -377,8 +384,8 @@ services:
       replicas: 2
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512m
+          cpus: "1.5"
+          memory: 1g
       update_config:
         parallelism: 1
         delay: 10s
@@ -387,7 +394,6 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 3
-
 
   frontend:
     build:
@@ -403,7 +409,7 @@ services:
       - app-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -427,7 +433,6 @@ services:
     cap_drop:
       - ALL
 
-
 networks:
   app-net:
     driver: bridge
@@ -449,10 +454,10 @@ secrets:
     file: ./secrets/jwt_secret.txt
 
 volumes:
-  pgdata:   { name: legocitytimes-pgdata }
+  pgdata: { name: legocitytimes-pgdata }
   pgbackups: { name: legocitytimes-pgbackups }
-  uploads:  { name: legocitytimes-uploads }
+  uploads: { name: legocitytimes-uploads }
   promdata: { name: legocitytimes-promdata }
   alertdata: { name: legocitytimes-alertdata }
   grafanadata: { name: legocitytimes-grafanadata }
-  esdata:      { name: legocitytimes-esdata }
+  esdata: { name: legocitytimes-esdata }

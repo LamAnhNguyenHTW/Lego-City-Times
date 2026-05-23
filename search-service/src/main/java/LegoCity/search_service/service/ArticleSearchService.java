@@ -6,7 +6,9 @@ import LegoCity.search_service.dto.ArticleSearchResponse;
 import LegoCity.search_service.dto.ArticleStatus;
 import LegoCity.search_service.dto.PageResponse;
 import LegoCity.search_service.repository.ArticleSearchRepository;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -17,9 +19,15 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArticleSearchService {
@@ -28,14 +36,28 @@ public class ArticleSearchService {
 
     private final ArticleSearchRepository repository;
     private final ElasticsearchOperations elasticsearchOperations;
+    @Qualifier("indexingExecutor")
+    private final Executor indexingExecutor;
 
     public void index(ArticleIndexRequest request) {
+        try {
+            indexingExecutor.execute(() -> indexNow(request));
+        } catch (RejectedExecutionException ex) {
+            throw new ResponseStatusException(TOO_MANY_REQUESTS, "Indexing queue is full", ex);
+        }
+    }
+
+    private void indexNow(ArticleIndexRequest request) {
         if (request.getStatus() != ArticleStatus.PUBLISHED) {
             repository.deleteById(request.getId());
             return;
         }
 
-        repository.save(toDocument(request));
+        try {
+            repository.save(toDocument(request));
+        } catch (RuntimeException ex) {
+            log.error("Failed to index article {} asynchronously", request.getId(), ex);
+        }
     }
 
     public void delete(String id) {

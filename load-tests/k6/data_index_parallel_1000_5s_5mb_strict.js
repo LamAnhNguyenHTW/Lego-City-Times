@@ -1,10 +1,11 @@
 import { postIndex } from './lib/search-index.js';
 import { sleepDistributedRampUp } from './lib/ramp.js';
+import { SharedArray } from 'k6/data';
 
 const VUS = 1000;
 const RAMP_UP_SECONDS = 5;
 
-const payload = open('./payloads/article-index-5mb.json');
+const payloads = new SharedArray('article-index-5mb', () => [open('./payloads/article-index-5mb.json')]);
 
 export const options = {
   discardResponseBodies: true,
@@ -23,5 +24,5 @@ export const options = {
 
 export default function () {
   sleepDistributedRampUp(VUS, RAMP_UP_SECONDS);
-  postIndex(payload, { allow429: false });
+  postIndex(payloads[0], { allow429: false });
 }
