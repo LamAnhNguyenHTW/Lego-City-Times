@@ -5,10 +5,9 @@ Path Traversal, RCE, Scanner/Bots …). Sie ist direkt im Reverse Proxy `nginx`
 integriert — also genau dort, wo TLS terminiert wird und der Klartext-Request
 zum ersten Mal sichtbar ist.
 
-> **Aktueller Modus: `DetectionOnly`.** Die WAF erkennt Angriffe und schreibt sie
-> ins Audit-Log, **blockiert aber noch nicht**. So lassen sich Fehlalarme (False
-> Positives) gefahrlos prüfen, bevor scharf geschaltet wird. Umschalten auf
-> blockierend (`403`) über `MODSEC_RULE_ENGINE: On` — siehe Abschnitt 3.
+> **Aktueller Modus: `On` (blockierend).** Die WAF erkennt Angriffe, schreibt sie
+> ins Audit-Log und blockiert mit **`403`**. Der Modus wird ueber
+> `MODSEC_RULE_ENGINE: On` gesetzt (siehe Abschnitt 2).
 
 ## 1. Aufbau
 
@@ -18,7 +17,7 @@ zum ersten Mal sichtbar ist.
 | Regelwerk | **OWASP Core Rule Set (CRS)** |
 | Image | `owasp/modsecurity-crs:nginx` (ersetzt `nginx:alpine`) |
 | Platzierung | im bestehenden nginx, **einziger Eingang** (80/443) |
-| Modus (Start) | `DetectionOnly` — nur loggen, **nicht** blockieren |
+| Modus (Start) | `On` — blockiert mit **403** |
 
 Das Image bringt Engine, Connector-Modul und das komplette CRS mit. Aktiviert
 wird die WAF über drei Zeilen in `monitoring/nginx/nginx.conf`:
@@ -44,7 +43,7 @@ Die restliche nginx-Config (Upstreams, Rate-Limiting, TLS) bleibt unverändert.
 
 | Variable | Wert | Zweck |
 |---|---|---|
-| `MODSEC_RULE_ENGINE` | `DetectionOnly` | Modus: nur erkennen/loggen (Start) |
+| `MODSEC_RULE_ENGINE` | `On` | Modus: blockierend (403) |
 | `PARANOIA` | `1` | CRS-Strenge (1 = Standard, weniger Fehlalarme) |
 | `ANOMALY_INBOUND` | `5` | Schwellwert eingehende Anomalie-Score |
 | `ANOMALY_OUTBOUND` | `4` | Schwellwert ausgehende Anomalie-Score |
@@ -58,17 +57,11 @@ Die restliche nginx-Config (Upstreams, Rate-Limiting, TLS) bleibt unverändert.
 > `MODSEC_REQ_BODY_NOFILES_LIMIT` auf 20 MB angehoben — sonst würde die WAF die
 > k6-Lasttests abweisen.
 
-## 3. Vom Erkennen zum Blockieren
+## 3. Blockiermodus und Tuning
 
-Empfohlener Ablauf, um Fehlalarme (False Positives) zu vermeiden:
-
-1. **Start in `DetectionOnly`** (aktuell gesetzt) → Stack laufen lassen, normale
-   Nutzung + Lasttests durchspielen.
-2. **Audit-Log prüfen** (siehe unten): Treffer, die *legitimen* Traffic betreffen,
-   sind False Positives.
-3. Bei Bedarf einzelne Regeln per Ausnahme entschärfen (CRS-Exclusion-Rules).
-4. **Auf blockierend umstellen:** in `docker-compose.yml`
-   `MODSEC_RULE_ENGINE: On` setzen und nginx neu starten.
+Die WAF laeuft im blockierenden Modus. Falls es zu Fehlalarmen kommt, kannst du
+die Regeln gezielt entschärfen (CRS-Exclusion-Rules) oder temporaer auf
+`DetectionOnly` umstellen.
 
 ```powershell
 # nach Änderung des Modus:
@@ -93,10 +86,8 @@ docker exec legocitytimes-nginx tail -n 20 /var/log/modsec/audit.log
 docker exec legocitytimes-nginx tail -f /var/log/modsec/audit.log
 ```
 
-- Im **`DetectionOnly`-Modus** liefert der Angriffs-Request weiterhin eine normale
-  Antwort, **aber** das Audit-Log enthält den Regeltreffer (z. B. CRS-Regel-ID
-  942xxx „SQL Injection").
-- Nach Umstellung auf `On` antwortet derselbe Request mit **`403 Forbidden`**.
+- Im **`On`-Modus** antwortet der Angriffs-Request mit **`403 Forbidden`** und das
+  Audit-Log enthaelt den Regeltreffer (z. B. CRS-Regel-ID 942xxx „SQL Injection").
 
 ## 5. Logs
 

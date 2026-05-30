@@ -258,6 +258,26 @@ docker run --rm --network legocitytimes-app-net -v "${PWD}:/work" -w /work `
 | Szenario | Skript |
 |---|---|
 | 10 parallel, 0s | `web_page_parallel_10_0s.js` |
+
+### 5.4 WAF (ModSecurity) testen
+
+Der Reverse Proxy (`nginx`) nutzt ModSecurity mit OWASP CRS. Der Test sendet
+harmlos-formatierte Requests, die typischerweise mit **403** geblockt werden.
+
+```powershell
+.\scripts\waf-tests.ps1
+```
+
+Erwartung:
+
+- Jeder Test liefert `HTTP 403`
+- Die nginx-Logs enthalten ModSecurity-Eintraege (Rule IDs, z. B. 941100/942100)
+
+Nur Logs anzeigen (ohne Requests):
+
+```powershell
+.\scripts\waf-tests.ps1 -LogsOnly
+```
 | 100 parallel, 1s | `web_page_parallel_100_1s.js` |
 | 1000 parallel, 5s | `web_page_parallel_1000_5s.js` |
 | 1000 parallel, 1s | `web_page_parallel_1000_1s.js` |
@@ -374,7 +394,7 @@ docker inspect legocitytimes-nginx --format "ReadOnly={{.HostConfig.ReadonlyRoot
 |---|---|
 | Netz-Isolation | `app-net`, internes `db-net`, `monitoring-net` |
 | SSL | nginx TLS auf 443, Zert. in `monitoring/nginx/certs` |
-| WAF | ModSecurity v3 + OWASP CRS im nginx, Modus `DetectionOnly` (`docs/waf.md`) |
+| WAF | ModSecurity v3 + OWASP CRS im nginx, Modus `On` (blockierend, siehe `docs/waf.md`) |
 | Secrets | Docker Secrets (Postgres, Grafana, JWT) + `.env` für Slack |
 | Keine unnötigen Ports | nur 80, 443, 3000 |
 | Zusatz-Hardening | `tmpfs`, `cap_drop`, gezielte `cap_add`, `no-new-privileges` |

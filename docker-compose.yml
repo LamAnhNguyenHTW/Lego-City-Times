@@ -158,9 +158,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      # WAF-Modus: DetectionOnly = nur loggen, NICHT blockieren.
-      # Nach Tuning (keine Fehlalarme) auf "On" setzen → blockierend.
-      MODSEC_RULE_ENGINE: DetectionOnly
+      # WAF-Modus: "On" = blockierend (Tests sollen 403 liefern).
+      MODSEC_RULE_ENGINE: On
       # CRS-Aggressivität (1 = Standard, weniger Fehlalarme; 4 = am strengsten)
       PARANOIA: "1"
       ANOMALY_INBOUND: "5"
