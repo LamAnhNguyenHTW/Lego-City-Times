@@ -1,18 +1,20 @@
-services:
 
+services:
   # ── Datenbank ──────────────────────────────────────────────────────────────
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.2.8
     container_name: legocitytimes-elasticsearch
-    cpus: "2.0"
-    mem_limit: 2g
+    cpus: "4.0"
+    mem_limit: 6g
     environment:
       cluster.name: legocitytimes-cluster
       network.host: 0.0.0.0
       discovery.seed_hosts: elasticsearch
       cluster.initial_master_nodes: elasticsearch
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      ES_JAVA_OPTS: -Xms3g -Xmx3g
+      indices.memory.index_buffer_size: "20%"
+      thread_pool.write.queue_size: "1000"
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
@@ -31,13 +33,12 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 2g
+          cpus: "4.0"
+          memory: 6g
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-
   postgres:
     image: postgres:17-alpine
     container_name: legocitytimes-postgres
@@ -72,7 +73,6 @@ services:
         limits:
           cpus: "1.0"
           memory: 512m
-
   # ── Automatisiertes DB-Backup ──────────────────────────────────────────────
   pg-backup:
     image: prodrigestivill/postgres-backup-local:17
@@ -101,7 +101,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 256m
-
   # ── Anwendung ──────────────────────────────────────────────────────────────
   content-service:
     build:
@@ -131,7 +130,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 200s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -142,13 +141,12 @@ services:
         limits:
           cpus: "1.0"
           memory: 768m
-
   # ── Reverse Proxy ──────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: legocitytimes-nginx
-    cpus: "1.0"
-    mem_limit: 512m
+    cpus: "2.0"
+    mem_limit: 1g
     depends_on:
       content-service:
         condition: service_healthy
@@ -166,6 +164,9 @@ services:
       - app-net
       - monitoring-net
     restart: unless-stopped
+    sysctls:
+      net.core.somaxconn: 4096
+      net.ipv4.tcp_max_syn_backlog: 4096
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok" ]
       interval: 30s
@@ -189,9 +190,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512m
-
+          cpus: "2.0"
+          memory: 1g
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: legocitytimes-nginx-exporter
@@ -212,7 +212,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 64m
-
   # ── Container-Metriken ─────────────────────────────────────────────────────
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -234,7 +233,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 256m
-
   # ── PostgreSQL-Exporter ────────────────────────────────────────────────────
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
@@ -262,7 +260,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 128m
-
   # ── Prometheus ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
@@ -290,7 +287,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 512m
-
   # ── Alertmanager ───────────────────────────────────────────────────────────
   alertmanager:
     image: prom/alertmanager:latest
@@ -315,7 +311,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 128m
-
   # ── Grafana ────────────────────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
@@ -351,14 +346,13 @@ services:
         limits:
           cpus: "0.5"
           memory: 256m
-
   search-service:
     build:
       context: ./search-service
       dockerfile: Dockerfile
     image: legocitytimes/search-service:latest
-    cpus: "1.5"
-    mem_limit: 1g
+    cpus: "2.0"
+    mem_limit: 2g
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -370,22 +364,25 @@ services:
       - db-net
       - monitoring-net
     restart: unless-stopped
+    sysctls:
+      net.core.somaxconn: 4096
+      net.ipv4.tcp_max_syn_backlog: 4096
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'" ]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 120s
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     deploy:
-      replicas: 2
+      replicas: 4
       resources:
         limits:
-          cpus: "1.5"
-          memory: 1g
+          cpus: "2.0"
+          memory: 2g
       update_config:
         parallelism: 1
         delay: 10s
@@ -394,7 +391,6 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 3
-
   frontend:
     build:
       context: ./frontend
@@ -413,7 +409,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 25s
+      start_period: 90s
     deploy:
       replicas: 3
       resources:
@@ -432,7 +428,6 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-
 networks:
   app-net:
     driver: bridge
@@ -444,7 +439,6 @@ networks:
   monitoring-net:
     driver: bridge
     name: legocitytimes-monitoring-net
-
 secrets:
   postgres_password:
     file: ./secrets/postgres_password.txt
@@ -452,7 +446,6 @@ secrets:
     file: ./secrets/grafana_password.txt
   jwt_secret:
     file: ./secrets/jwt_secret.txt
-
 volumes:
   pgdata: { name: legocitytimes-pgdata }
   pgbackups: { name: legocitytimes-pgbackups }
