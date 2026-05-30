@@ -143,8 +143,7 @@ services:
           memory: 768m
   # ── Reverse Proxy + WAF (ModSecurity v3 + OWASP CRS) ───────────────────────
   nginx:
-    # Offizielles OWASP-CRS-Image: nginx + ModSecurity-Modul + Core Rule Set
-    image: owasp/modsecurity-crs:nginx-alpine
+    image: owasp/modsecurity-crs:nginx
     container_name: legocitytimes-nginx
     cpus: "2.0"
     mem_limit: 1g
@@ -175,7 +174,7 @@ services:
       MODSEC_AUDIT_ENGINE: RelevantOnly
       MODSEC_AUDIT_LOG: /var/log/modsec/audit.log
     volumes:
-      - ./monitoring/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./monitoring/nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
       - ./monitoring/nginx/certs:/etc/nginx/certs:ro
       - modseclogs:/var/log/modsec
     networks:
@@ -191,11 +190,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    # read_only entfällt: das CRS-Image rendert beim Start seine Config
-    # (envsubst) nach /etc/modsecurity.d und /etc/nginx/conf.d und braucht
-    # daher ein beschreibbares FS. Übrige Hardening-Maßnahmen bleiben aktiv.
     tmpfs:
-      - /var/cache/nginx
+      - /var/cache/nginx:rw,mode=1777
+      - /var/log/nginx:rw,mode=1777
+      - /var/log/modsecurity:rw,mode=1777
+      - /var/run:rw,mode=1777
       - /tmp
     security_opt:
       - no-new-privileges:true
