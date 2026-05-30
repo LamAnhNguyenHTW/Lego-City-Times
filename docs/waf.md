@@ -5,13 +5,18 @@ Path Traversal, RCE, Scanner/Bots …). Sie ist direkt im Reverse Proxy `nginx`
 integriert — also genau dort, wo TLS terminiert wird und der Klartext-Request
 zum ersten Mal sichtbar ist.
 
+> **Aktueller Modus: `DetectionOnly`.** Die WAF erkennt Angriffe und schreibt sie
+> ins Audit-Log, **blockiert aber noch nicht**. So lassen sich Fehlalarme (False
+> Positives) gefahrlos prüfen, bevor scharf geschaltet wird. Umschalten auf
+> blockierend (`403`) über `MODSEC_RULE_ENGINE: On` — siehe Abschnitt 3.
+
 ## 1. Aufbau
 
 | Komponente | Umsetzung |
 |---|---|
 | Engine | **ModSecurity v3** (nginx-Connector) |
 | Regelwerk | **OWASP Core Rule Set (CRS)** |
-| Image | `owasp/modsecurity-crs:nginx-alpine` (ersetzt `nginx:alpine`) |
+| Image | `owasp/modsecurity-crs:nginx` (ersetzt `nginx:alpine`) |
 | Platzierung | im bestehenden nginx, **einziger Eingang** (80/443) |
 | Modus (Start) | `DetectionOnly` — nur loggen, **nicht** blockieren |
 
@@ -26,6 +31,14 @@ modsecurity_rules_file /etc/modsecurity.d/setup.conf;  # bindet Recommended-Conf
 ```
 
 Die restliche nginx-Config (Upstreams, Rate-Limiting, TLS) bleibt unverändert.
+
+> **Mount-Hinweis:** Das CRS-Image generiert seine `/etc/nginx/nginx.conf` beim
+> Start selbst aus einem Template (envsubst). Unsere `nginx.conf` wird deshalb
+> **nicht** nach `/etc/nginx/nginx.conf`, sondern als Template nach
+> `/etc/nginx/templates/nginx.conf.template` gemountet — sonst scheitert der Start
+> mit „can't create /etc/nginx/nginx.conf: Read-only file system". Zusätzlich
+> schreibt nginx die PID nach `/tmp/nginx.pid` (`pid /tmp/nginx.pid;`), damit der
+> Pfad auf dem nicht-root-Container beschreibbar ist.
 
 ## 2. Konfiguration (Environment in `docker-compose.yml`)
 
@@ -100,8 +113,24 @@ docker exec legocitytimes-nginx ls -lh /var/log/modsec
 
 ## 6. Hinweis zum Hardening
 
-Das CRS-Image rendert beim Start seine Konfiguration (envsubst) nach
-`/etc/modsecurity.d` und `/etc/nginx/conf.d` und braucht dafür ein beschreibbares
-Dateisystem. Deshalb wurde `read_only: true` beim nginx-Service entfernt. Alle
-übrigen Hardening-Maßnahmen (`cap_drop: ALL` + gezielte `cap_add`,
-`no-new-privileges`, `tmpfs`) bleiben aktiv.
+Das CRS-Image rendert beim Start seine Konfiguration (envsubst) und legt Cache-,
+Log- und Temp-Verzeichnisse an. Da nginx im Container als **nicht-root** läuft,
+müssen diese Pfade beschreibbar sein. Statt `read_only: true` werden sie als
+`tmpfs` mit `mode=1777` eingebunden:
+
+```yaml
+tmpfs:
+  - /var/cache/nginx:rw,mode=1777
+  - /var/log/nginx:rw,mode=1777
+  - /var/log/modsecurity:rw,mode=1777
+  - /var/run:rw,mode=1777
+  - /tmp
+```
+
+> Ohne `mode=1777` schlägt der Start mit
+> `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)` fehl,
+> weil der nicht-root-Prozess in den root-eigenen tmpfs-Mounts nichts anlegen darf.
+
+Alle übrigen Hardening-Maßnahmen bleiben aktiv: `cap_drop: ALL` + gezielte
+`cap_add` (`CHOWN`, `SETUID`, `SETGID`, `NET_BIND_SERVICE`, `DAC_OVERRIDE`) und
+`no-new-privileges`.

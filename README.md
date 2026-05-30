@@ -374,7 +374,7 @@ docker inspect legocitytimes-nginx --format "ReadOnly={{.HostConfig.ReadonlyRoot
 |---|---|
 | Netz-Isolation | `app-net`, internes `db-net`, `monitoring-net` |
 | SSL | nginx TLS auf 443, Zert. in `monitoring/nginx/certs` |
-| WAF | ModSecurity v3 + OWASP CRS im nginx (`docs/waf.md`) |
+| WAF | ModSecurity v3 + OWASP CRS im nginx, Modus `DetectionOnly` (`docs/waf.md`) |
 | Secrets | Docker Secrets (Postgres, Grafana, JWT) + `.env` für Slack |
 | Keine unnötigen Ports | nur 80, 443, 3000 |
 | Zusatz-Hardening | `tmpfs`, `cap_drop`, gezielte `cap_add`, `no-new-privileges` |
@@ -403,7 +403,7 @@ Service `pg-backup` (`@daily`), Volume `legocitytimes-pgbackups`. Doku: `docs/db
 
 | Aspekt | Status |
 |---|---|
-| WAF | ✅ ModSecurity v3 + OWASP CRS im nginx (`docs/waf.md`) |
+| WAF | ✅ ModSecurity v3 + OWASP CRS im nginx, Modus `DetectionOnly` (`docs/waf.md`) |
 | Sicherheitsscan durchgeführt & dokumentiert | ✅ `docs/security-scan.md` |
 | Keine kritischen Schwachstellen | ✅ 0 Critical |
 | Automatisiertes DB-Backup | ✅ `pg-backup` |
